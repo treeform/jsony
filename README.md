@@ -1,4 +1,4 @@
-# JSONy
+# JSONy - A loose, direct to object json parser with hooks.
 
 Real world json is never what you want. It might have extra fields that you don't care about. It might have missing fields signifying default values. It might change or grow new fields at any moment. Json might use camelCase or snake_case. It might use inconsistent naming.
 
