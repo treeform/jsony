@@ -18,8 +18,8 @@ type Color2 = enum
   c2Blue
   c2Green
 
-proc enumHook[Color2](v: string): Color2 =
-  case v:
+proc enumHook(s: string, v: var Color2) =
+  v = case s:
   of "RED": c2Red
   of "BLUE": c2Blue
   of "GREEN": c2Green

@@ -18,7 +18,6 @@ block:
   doAssert v.a == "b"
   doAssert v.ratio == 22.5
 
-
 type
   Bar3 = ref object
     name: string
@@ -131,3 +130,17 @@ doAssert snakeCase("color_Rule") == "color_rule"
 doAssert snakeCase("color_rule") == "color_rule"
 doAssert snakeCase("httpGet") == "http_get"
 doAssert snakeCase("restAPI") == "rest_api"
+
+block:
+  type Entry5 = object
+    color: string
+  var s = "null"
+  var v = fromJson[Entry5](s)
+  doAssert v.color == ""
+
+block:
+  type Entry6 = ref object
+    color: string
+  var s = "null"
+  var v = fromJson[Entry6](s)
+  doAssert v == nil

@@ -1,4 +1,4 @@
-import macros, strutils
+import macros, strutils, tables, unicode
 
 type JsonError = object of ValueError
 
@@ -7,9 +7,9 @@ const whiteSpace = {' ', '\n', '\t', '\r'}
 proc parseJson[T](s: string, i: var int, v: var seq[T])
 proc parseJson[T:enum](s: string, i: var int, v: var T)
 proc parseJson[T:object|ref object](s: string, i: var int, v: var T)
+proc parseJson[T](s: string, i: var int, v: var Table[string, T])
 
-
-template error(msg: string) =
+template error(msg: string, i: int) =
   ## Short cut to raise an exception.
   raise newException(JsonError, msg)
 
@@ -28,11 +28,11 @@ proc eat(s: string, i: var int, c: char) =
   ## Will raise an exception if `c` is not found.
   eatSpace(s, i)
   if i >= s.len:
-    error("Expected " & c & " but end reached.")
+    error("Expected " & c & " but end reached.", i)
   if s[i] == c:
     inc i
   else:
-    error("Expected " & c & " at offset " & $i & ".")
+    error("Expected " & c & " at offset.", i)
 
 proc parseSymbol(s: string, i: var int): string =
   ## Will read a symbol and return it.
@@ -56,7 +56,7 @@ proc parseJson(s: string, i: var int, v: var bool) =
   of "false":
     v = false
   else:
-    error("Boolean true or false expected at offset " & $i & ".")
+    error("Boolean true or false expected.", i)
 
 proc parseJson(s: string, i: var int, v: var SomeInteger) =
   ## Will parse int8, uint8, int16, uint16, int32, uint32, int64, uint64 or
@@ -69,15 +69,40 @@ proc parseJson(s: string, i: var int, v: var SomeFloat) =
 
 proc parseJson(s: string, i: var int, v: var string) =
   ## Parse string.
+  #echo "S:", s[i .. min(i + 80, s.len-1)]
+  eatSpace(s, i)
+  if s[i] == 'n':
+    let what = parseSymbol(s, i)
+    if what == "null":
+      return
+    else:
+      error("Expected \" or null at offset.", i)
   eat(s, i, '"')
   var j = i
   while i < s.len:
-    case s[i]
+    let c = s[i]
+    case c
     of '"':
-      v = s[j ..< i]
       break
+    of '\\':
+      inc i
+      let c = s[i]
+      case c
+      of '"', '\\', '/': v.add(c)
+      of 'b': v.add '\b'
+      of 'f': v.add '\f'
+      of 'n': v.add '\n'
+      of 'r': v.add '\r'
+      of 't': v.add '\t'
+      of 'u':
+        inc i
+        let u = parseHexInt(s[i ..< i + 4])
+        i += 3
+        v.add(Rune(u).toUTF8())
+      else:
+        v.add(c)
     else:
-      discard
+      v.add(c)
     inc i
   eat(s, i, '"')
 
@@ -100,8 +125,10 @@ proc parseJson[T](s: string, i: var int, v: var seq[T]) =
 
 proc skipValue(s: string, i: var int) =
   ## Used to skip values of extra fields.
+  #echo "Skip:", s[i .. min(i + 80, s.len-1)]
   eatSpace(s, i)
   if s[i] == '{':
+    #echo "skip obj"
     eat(s, i, '{')
     while i < s.len:
       eatSpace(s, i)
@@ -115,6 +142,7 @@ proc skipValue(s: string, i: var int) =
         inc i
     eat(s, i, '}')
   elif s[i] == '[':
+    #echo "skip arr"
     eat(s, i, '[')
     while i < s.len:
       eatSpace(s, i)
@@ -126,13 +154,11 @@ proc skipValue(s: string, i: var int) =
         inc i
     eat(s, i, ']')
   elif s[i] == '"':
-    eat(s, i, '"')
-    while i < s.len:
-      inc i
-      if s[i] == '"':
-        break
-    eat(s, i, '"')
+    #echo "skip str"
+    var str: string
+    parseJson(s, i, str)
   else:
+    #echo "skip sym"
     discard parseSymbol(s, i)
 
 proc camelCase(s: string): string =
@@ -189,8 +215,8 @@ proc parseJson[T:enum](s: string, i: var int, v: var T) =
   var strV: string
   if s[i] == '"':
     parseJson(s, i, strV)
-    when compiles(enumHook[T](strV)):
-      v = enumHook[T](strV)
+    when compiles(enumHook(strV, v)):
+      enumHook(strV, v)
     else:
       v = parseEnum[T](strV)
   else:
@@ -199,6 +225,13 @@ proc parseJson[T:enum](s: string, i: var int, v: var T) =
 
 proc parseJson[T:object|ref object](s: string, i: var int, v: var T) =
   ## Parse an object.
+  eatSpace(s, i)
+  if s[i] == 'n':
+    let what = parseSymbol(s, i)
+    if what == "null":
+      return
+    else:
+      error("Expected {} or null at offset.", i)
   eat(s, i, '{')
   when compiles(newHook(v)):
     newHook(v)
@@ -213,6 +246,25 @@ proc parseJson[T:object|ref object](s: string, i: var int, v: var T) =
     eat(s, i, ':')
     fieldsMacro(v, key)
     eatSpace(s, i)
+    if s[i] == ',':
+      inc i
+    else:
+      break
+  eat(s, i, '}')
+
+proc parseJson[T](s: string, i: var int, v: var Table[string, T]) =
+  ## Parse an object.
+  eat(s, i, '{')
+  while i < s.len:
+    eatSpace(s, i)
+    if s[i] == '}':
+      break
+    var key: string
+    parseJson(s, i, key)
+    eat(s, i, ':')
+    var element: T
+    parseJson(s, i, element)
+    v[key] = element
     if s[i] == ',':
       inc i
     else:
