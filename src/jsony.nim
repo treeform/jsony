@@ -165,10 +165,12 @@ proc camelCase(s: string): string =
   return s
 
 proc snakeCase(s: string): string =
+  if s.len == 0:
+    return
   var prevCap = false
   for i, c in s:
     if c in {'A'..'Z'}:
-      if result.len > 0 and result[^1] != '_' and not prevCap:
+      if result.len > 0 and result[result.len-1] != '_' and not prevCap:
         result.add '_'
       prevCap = true
       result.add c.toLowerAscii()
