@@ -110,7 +110,7 @@ Json can't store dates, so they are usually stored as strings. You can use
 `parseHook()` to override default parsing and parse date times as a string:
 
 ```nim
-proc parseHook(s:string, i:var int, v: var DateTime) =
+proc parseHook(s: string, i: var int, v: var DateTime) =
   var str: string
   parseHook(s, i, str)
   v = parse(str, "yyyy-MM-dd hh:mm:ss")
@@ -132,7 +132,7 @@ let data = """{
   "3": {"count":99, "filled": 99}
 }"""
 
-proc parseHook(s:string, i:var int, v: var seq[Entry]) =
+proc parseHook(s: string, i: var int, v: var seq[Entry]) =
   var table: Table[string, Entry]
   parseHook(s, i, table)
   for k, entry in table.mpairs:

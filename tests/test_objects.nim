@@ -1,4 +1,4 @@
-import jsony
+import jsony, strutils
 
 block:
   type Entry1 = object
@@ -87,7 +87,6 @@ block:
   doAssert v[0].color == ""
   doAssert v[1].color == "red"
 
-
 block:
   ## Skip extra fields
   type Entry3 = object
@@ -110,7 +109,6 @@ block:
   v = fromJson[Entry4]("""{"color_blend":"red"}""")
   doAssert v.colorBlend == "red"
 
-import strutils
 proc snakeCase(s: string): string =
   var prevCap = false
   for i, c in s:

@@ -15,7 +15,7 @@ block:
   doAssert v[2] == 3.5
 
 block:
-  type Entry = tuple[id:int, name:string, dist:float32]
+  type Entry = tuple[id: int, name: string, dist: float32]
   var s = """[134, "red", 13.5]"""
   var v = fromJson[Entry](s)
   doAssert v[0] == 134
@@ -26,7 +26,7 @@ block:
   doAssert v.dist == 13.5
 
 block:
-  type Vector3i = tuple[x:int, y:int, z:int]
+  type Vector3i = tuple[x: int, y: int, z: int]
   var s = """[0, 1, 2]"""
   var v = fromJson[Vector3i](s)
   doAssert v[0] == 0

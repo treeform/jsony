@@ -5,11 +5,11 @@ type JsonError = object of ValueError
 const whiteSpace = {' ', '\n', '\t', '\r'}
 
 proc parseHook*[T](s: string, i: var int, v: var seq[T])
-proc parseHook*[T:enum](s: string, i: var int, v: var T)
-proc parseHook*[T:object|ref object](s: string, i: var int, v: var T)
+proc parseHook*[T: enum](s: string, i: var int, v: var T)
+proc parseHook*[T: object|ref object](s: string, i: var int, v: var T)
 proc parseHook*[T](s: string, i: var int, v: var Table[string, T])
-proc parseHook*[T:tuple](s: string, i: var int, v: var T)
-proc parseHook*[T:array](s: string, i: var int, v: var T)
+proc parseHook*[T: tuple](s: string, i: var int, v: var T)
+proc parseHook*[T: array](s: string, i: var int, v: var T)
 
 template error(msg: string, i: int) =
   ## Short cut to raise an exception.
@@ -124,7 +124,7 @@ proc parseHook*[T](s: string, i: var int, v: var seq[T]) =
       break
   eatChar(s, i, ']')
 
-proc parseHook*[T:tuple](s: string, i: var int, v: var T) =
+proc parseHook*[T: tuple](s: string, i: var int, v: var T) =
   eatSpace(s, i)
   var strV: string
   eatChar(s, i, '[')
@@ -136,7 +136,7 @@ proc parseHook*[T:tuple](s: string, i: var int, v: var T) =
       inc i
   eatChar(s, i, ']')
 
-proc parseHook*[T:array](s: string, i: var int, v: var T) =
+proc parseHook*[T: array](s: string, i: var int, v: var T) =
   eatSpace(s, i)
   var strV: string
   eatChar(s, i, '[')
@@ -237,7 +237,7 @@ macro fieldsMacro(v: typed, key: string) =
   ofElseClause.add(body)
   result.add(ofElseClause)
 
-proc parseHook*[T:enum](s: string, i: var int, v: var T) =
+proc parseHook*[T: enum](s: string, i: var int, v: var T) =
   eatSpace(s, i)
   var strV: string
   if s[i] == '"':
@@ -250,7 +250,7 @@ proc parseHook*[T:enum](s: string, i: var int, v: var T) =
     strV = parseSymbol(s, i)
     v = T(parseInt(strV))
 
-proc parseHook*[T:object|ref object](s: string, i: var int, v: var T) =
+proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
   ## Parse an object.
   eatSpace(s, i)
   if s[i] == 'n':

@@ -1,10 +1,10 @@
-import jsony, times, strutils, tables
+import jsony, strutils, tables, times
 
 type Fraction = object
   numerator: int
   denominator: int
 
-proc parseHook(s:string, i:var int, v: var Fraction) =
+proc parseHook(s: string, i: var int, v: var Fraction) =
   ## Instead of looking for fraction object look for a string.
   var str: string
   parseHook(s, i, str)
@@ -17,7 +17,7 @@ var frac = fromJson[Fraction](""" "1/3" """)
 doAssert frac.numerator == 1
 doAssert frac.denominator == 3
 
-proc parseHook(s:string, i:var int, v: var DateTime) =
+proc parseHook(s: string, i: var int, v: var DateTime) =
   var str: string
   parseHook(s, i, str)
   v = parse(str, "yyyy-MM-dd hh:mm:ss")
@@ -36,7 +36,7 @@ let data = """{
   "3": {"count":99, "filled": 99}
 }"""
 
-proc parseHook(s:string, i:var int, v: var seq[Entry]) =
+proc parseHook(s: string, i: var int, v: var seq[Entry]) =
   var table: Table[string, Entry]
   parseHook(s, i, table)
   for k, entry in table.mpairs:
