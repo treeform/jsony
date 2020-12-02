@@ -107,7 +107,7 @@ doAssert node.kind == "root"
 ### `proc parseHook()` Can be used to do anything.
 
 Json can't store dates, so they are usually stored as strings. You can use
-`parseHook()` to override default parsing and parse date times as a string:
+`parseHook()` to override default parsing and parse `DateTime` as a `string`:
 
 ```nim
 proc parseHook(s: string, i: var int, v: var DateTime) =
