@@ -4,18 +4,18 @@ type JsonError = object of ValueError
 
 const whiteSpace = {' ', '\n', '\t', '\r'}
 
-proc parseJson[T](s: string, i: var int, v: var seq[T])
-proc parseJson[T:enum](s: string, i: var int, v: var T)
-proc parseJson[T:object|ref object](s: string, i: var int, v: var T)
-proc parseJson[T](s: string, i: var int, v: var Table[string, T])
-proc parseJson[T:tuple](s: string, i: var int, v: var T)
-proc parseJson[T:array](s: string, i: var int, v: var T)
+proc parseHook*[T](s: string, i: var int, v: var seq[T])
+proc parseHook*[T:enum](s: string, i: var int, v: var T)
+proc parseHook*[T:object|ref object](s: string, i: var int, v: var T)
+proc parseHook*[T](s: string, i: var int, v: var Table[string, T])
+proc parseHook*[T:tuple](s: string, i: var int, v: var T)
+proc parseHook*[T:array](s: string, i: var int, v: var T)
 
 template error(msg: string, i: int) =
   ## Short cut to raise an exception.
   raise newException(JsonError, msg)
 
-proc eatSpace(s: string, i: var int) =
+proc eatSpace*(s: string, i: var int) =
   ## Will consume white space.
   while i < s.len:
     let c = s[i]
@@ -25,7 +25,7 @@ proc eatSpace(s: string, i: var int) =
       return
     inc i
 
-proc eat(s: string, i: var int, c: char) =
+proc eatChar*(s: string, i: var int, c: char) =
   ## Will consume space before and then the character `c`.
   ## Will raise an exception if `c` is not found.
   eatSpace(s, i)
@@ -36,7 +36,7 @@ proc eat(s: string, i: var int, c: char) =
   else:
     error("Expected " & c & " at offset.", i)
 
-proc parseSymbol(s: string, i: var int): string =
+proc parseSymbol*(s: string, i: var int): string =
   ## Will read a symbol and return it.
   ## Used for numbers and booleans.
   eatSpace(s, i)
@@ -50,7 +50,7 @@ proc parseSymbol(s: string, i: var int): string =
     inc i
   return s[j ..< i]
 
-proc parseJson(s: string, i: var int, v: var bool) =
+proc parseHook*(s: string, i: var int, v: var bool) =
   ## Will parse boolean true or false.
   case parseSymbol(s, i)
   of "true":
@@ -60,16 +60,16 @@ proc parseJson(s: string, i: var int, v: var bool) =
   else:
     error("Boolean true or false expected.", i)
 
-proc parseJson(s: string, i: var int, v: var SomeInteger) =
+proc parseHook*(s: string, i: var int, v: var SomeInteger) =
   ## Will parse int8, uint8, int16, uint16, int32, uint32, int64, uint64 or
   ## just int.
   v = type(v)(parseInt(parseSymbol(s, i)))
 
-proc parseJson(s: string, i: var int, v: var SomeFloat) =
+proc parseHook*(s: string, i: var int, v: var SomeFloat) =
   ## Will parse float32 and float64.
   v = type(v)(parseFloat(parseSymbol(s, i)))
 
-proc parseJson(s: string, i: var int, v: var string) =
+proc parseHook*(s: string, i: var int, v: var string) =
   ## Parse string.
   #echo "S:", s[i .. min(i + 80, s.len-1)]
   eatSpace(s, i)
@@ -79,8 +79,7 @@ proc parseJson(s: string, i: var int, v: var string) =
       return
     else:
       error("Expected \" or null at offset.", i)
-  eat(s, i, '"')
-  var j = i
+  eatChar(s, i, '"')
   while i < s.len:
     let c = s[i]
     case c
@@ -106,48 +105,48 @@ proc parseJson(s: string, i: var int, v: var string) =
     else:
       v.add(c)
     inc i
-  eat(s, i, '"')
+  eatChar(s, i, '"')
 
-proc parseJson[T](s: string, i: var int, v: var seq[T]) =
+proc parseHook*[T](s: string, i: var int, v: var seq[T]) =
   ## Parse seq.
-  eat(s, i, '[')
+  eatChar(s, i, '[')
   while i < s.len:
     eatSpace(s, i)
     if s[i] == ']':
       break
     var element: T
-    parseJson(s, i, element)
+    parseHook(s, i, element)
     v.add(element)
     eatSpace(s, i)
     if s[i] == ',':
       inc i
     else:
       break
-  eat(s, i, ']')
+  eatChar(s, i, ']')
 
-proc parseJson[T:tuple](s: string, i: var int, v: var T) =
+proc parseHook*[T:tuple](s: string, i: var int, v: var T) =
   eatSpace(s, i)
   var strV: string
-  eat(s, i, '[')
+  eatChar(s, i, '[')
   for name, value in v.fieldPairs:
     eatSpace(s, i)
-    parseJson(s, i, value)
+    parseHook(s, i, value)
     eatSpace(s, i)
     if s[i] == ',':
       inc i
-  eat(s, i, ']')
+  eatChar(s, i, ']')
 
-proc parseJson[T:array](s: string, i: var int, v: var T) =
+proc parseHook*[T:array](s: string, i: var int, v: var T) =
   eatSpace(s, i)
   var strV: string
-  eat(s, i, '[')
+  eatChar(s, i, '[')
   for value in v.mitems:
     eatSpace(s, i)
-    parseJson(s, i, value)
+    parseHook(s, i, value)
     eatSpace(s, i)
     if s[i] == ',':
       inc i
-  eat(s, i, ']')
+  eatChar(s, i, ']')
 
 proc skipValue(s: string, i: var int) =
   ## Used to skip values of extra fields.
@@ -155,21 +154,21 @@ proc skipValue(s: string, i: var int) =
   eatSpace(s, i)
   if s[i] == '{':
     #echo "skip obj"
-    eat(s, i, '{')
+    eatChar(s, i, '{')
     while i < s.len:
       eatSpace(s, i)
       if s[i] == '}':
         break
       skipValue(s, i)
-      eat(s, i, ':')
+      eatChar(s, i, ':')
       skipValue(s, i)
       eatSpace(s, i)
       if s[i] == ',':
         inc i
-    eat(s, i, '}')
+    eatChar(s, i, '}')
   elif s[i] == '[':
     #echo "skip arr"
-    eat(s, i, '[')
+    eatChar(s, i, '[')
     while i < s.len:
       eatSpace(s, i)
       if s[i] == ']':
@@ -178,11 +177,11 @@ proc skipValue(s: string, i: var int) =
       eatSpace(s, i)
       if s[i] == ',':
         inc i
-    eat(s, i, ']')
+    eatChar(s, i, ']')
   elif s[i] == '"':
     #echo "skip str"
     var str: string
-    parseJson(s, i, str)
+    parseHook(s, i, str)
   else:
     #echo "skip sym"
     discard parseSymbol(s, i)
@@ -228,7 +227,7 @@ macro fieldsMacro(v: typed, key: string) =
       let ofClause = nnkOfBranch.newTree(newLit(caseName))
       let body = quote:
         var value: `filedType`
-        parseJson(s, i, value)
+        parseHook(s, i, value)
         v.`fieldName` = value
       ofClause.add(body)
       result.add(ofClause)
@@ -238,11 +237,11 @@ macro fieldsMacro(v: typed, key: string) =
   ofElseClause.add(body)
   result.add(ofElseClause)
 
-proc parseJson[T:enum](s: string, i: var int, v: var T) =
+proc parseHook*[T:enum](s: string, i: var int, v: var T) =
   eatSpace(s, i)
   var strV: string
   if s[i] == '"':
-    parseJson(s, i, strV)
+    parseHook(s, i, strV)
     when compiles(enumHook(strV, v)):
       enumHook(strV, v)
     else:
@@ -251,7 +250,7 @@ proc parseJson[T:enum](s: string, i: var int, v: var T) =
     strV = parseSymbol(s, i)
     v = T(parseInt(strV))
 
-proc parseJson[T:object|ref object](s: string, i: var int, v: var T) =
+proc parseHook*[T:object|ref object](s: string, i: var int, v: var T) =
   ## Parse an object.
   eatSpace(s, i)
   if s[i] == 'n':
@@ -260,7 +259,7 @@ proc parseJson[T:object|ref object](s: string, i: var int, v: var T) =
       return
     else:
       error("Expected {} or null at offset.", i)
-  eat(s, i, '{')
+  eatChar(s, i, '{')
   when compiles(newHook(v)):
     newHook(v)
   elif compiles(new(v)):
@@ -270,8 +269,8 @@ proc parseJson[T:object|ref object](s: string, i: var int, v: var T) =
     if s[i] == '}':
       break
     var key: string
-    parseJson(s, i, key)
-    eat(s, i, ':')
+    parseHook(s, i, key)
+    eatChar(s, i, ':')
     when compiles(renameHook(v, key)):
       renameHook(v, key)
     fieldsMacro(v, key)
@@ -280,26 +279,26 @@ proc parseJson[T:object|ref object](s: string, i: var int, v: var T) =
       inc i
     else:
       break
-  eat(s, i, '}')
+  eatChar(s, i, '}')
 
-proc parseJson[T](s: string, i: var int, v: var Table[string, T]) =
+proc parseHook*[T](s: string, i: var int, v: var Table[string, T]) =
   ## Parse an object.
-  eat(s, i, '{')
+  eatChar(s, i, '{')
   while i < s.len:
     eatSpace(s, i)
     if s[i] == '}':
       break
     var key: string
-    parseJson(s, i, key)
-    eat(s, i, ':')
+    parseHook(s, i, key)
+    eatChar(s, i, ':')
     var element: T
-    parseJson(s, i, element)
+    parseHook(s, i, element)
     v[key] = element
     if s[i] == ',':
       inc i
     else:
       break
-  eat(s, i, '}')
+  eatChar(s, i, '}')
 
 proc fromJson*[T](s: string): T =
   ## Takes json and outputs the object it represents.
@@ -309,4 +308,4 @@ proc fromJson*[T](s: string): T =
   ## * `proc newHook(foo: var ...)` Can be used to populate default values.
 
   var i = 0
-  parseJson(s, i, result)
+  parseHook(s, i, result)

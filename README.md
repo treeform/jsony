@@ -1,12 +1,12 @@
 # JSONy - A loose, direct to object json parser with hooks.
 
-Real world json is never what you want. It might have extra fields that you don't care about. It might have missing fields signifying default values. It might change or grow new fields at any moment. Json might use camelCase or snake_case. It might use inconsistent naming.
+Real world json is *never what you want*. It might have extra fields that you don't care about. It might have missing fields requiring default values. It might change or grow new fields at any moment. Json might use `camelCase` or `snake_case`. It might use inconsistent naming.
 
 With this library you can parse json your way, from the mess you get to the objects you want.
 
-## No garbage.
+## Fast/No garbage.
 
-Current standard module first parses json into JsonNodes and then turns the JsonNodes into objects you want. This is slower and creates unnecessary work for the garbage collector. This library skips the JsonNodes and creates the objects you want directly.
+Current standard module first parses json into JsonNodes and then turns the JsonNodes into your objects with the `to()` macro. This is slower and creates unnecessary work for the garbage collector. This library skips the JsonNodes and creates the objects you want directly.
 
 ## Can parse most object types:
 
@@ -16,10 +16,11 @@ Current standard module first parses json into JsonNodes and then turns the Json
 * tuples
 * seq and arrays
 * tables
+* and `parseHook()` enables you to parse any type!
 
 ## Not strict.
 
-Extra json fields are ignored and missing json fields keep their default values. Json is never exactly what you want.
+Extra json fields are ignored and missing json fields keep their default values.
 
 ```nim
 type Entry1 = object
@@ -31,7 +32,7 @@ doAssert v.color == ""
 
 ## Snake_case or CamelCase
 
-Nim usually uses camalCase for its variables, while a bunch of json in the wild uses snake_case. This library will convert snake_case to camalCase for you when reading json.
+Nim usually uses `camelCase` for its variables, while a bunch of json in the wild uses `snake_case`. This library will convert `snake_case` to `camelCase` for you when reading json.
 
 ```nim
 type Entry4 = object
@@ -48,7 +49,7 @@ doAssert v.colorBlend == "red"
 
 ### `proc newHook()` Can be used to populate default values.
 
-Some times absence of a field means it should have a default value. Normally hits would just be Nim's default value for the variable type. But with the newHook() you can setup the object with defaults before the main parsing happens.
+Some times absence of a field means it should have a default value. Normally this would just be Nim's default value for the variable type. But with the newHook() you can setup the object with defaults before the main parsing happens.
 
 ```nim
 type
@@ -56,7 +57,7 @@ type
     visible: string
     id: string
 proc newHook(foo: var Foo5) =
-  # Populates the object before its deserialized.
+  # Populates the object before its fully deserialized.
   foo.visible = "yes"
 
 var s = """{"id":"123"}"""
@@ -101,4 +102,51 @@ proc renameHook(v: var Node, fieldName: var string) =
 
 var node = fromJson[Node]("""{"type":"root"}""")
 doAssert node.kind == "root"
+```
+
+### `proc parseHook()` Can be used to do anything.
+
+Json can't store dates, so they are usually stored as strings. You can use
+`parseHook()` to override default parsing and parse date times as a string:
+
+```nim
+proc parseHook(s:string, i:var int, v: var DateTime) =
+  var str: string
+  parseHook(s, i, str)
+  v = parse(str, "yyyy-MM-dd hh:mm:ss")
+
+var dt = fromJson[DateTime](""" "2020-01-01 00:00:00" """)
+```
+
+Some times json gives you a object of entries with their id as keys, but you might want it as a sequence with ids inside the objects, again you can do anything with `parseHook()`:
+
+```nim
+type Entry = object
+  id: string
+  count: int
+  filled: int
+
+let data = """{
+  "1": {"count":12, "filled": 11},
+  "2": {"count":66, "filled": 0},
+  "3": {"count":99, "filled": 99}
+}"""
+
+proc parseHook(s:string, i:var int, v: var seq[Entry]) =
+  var table: Table[string, Entry]
+  parseHook(s, i, table)
+  for k, entry in table.mpairs:
+    entry.id = k
+    v.add(entry)
+
+let s = fromJson[seq[Entry]](data)
+```
+
+Gives us:
+```
+@[
+  (id: "1", count: 12, filled: 11),
+  (id: "2", count: 66, filled: 0),
+  (id: "3", count: 99, filled: 99)
+]"""
 ```
