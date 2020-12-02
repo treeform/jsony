@@ -244,6 +244,8 @@ proc parseJson[T:object|ref object](s: string, i: var int, v: var T) =
     var key: string
     parseJson(s, i, key)
     eat(s, i, ':')
+    when compiles(renameHook(v, key)):
+      renameHook(v, key)
     fieldsMacro(v, key)
     eatSpace(s, i)
     if s[i] == ',':

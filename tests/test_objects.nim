@@ -144,3 +144,13 @@ block:
   var s = "null"
   var v = fromJson[Entry6](s)
   doAssert v == nil
+
+type Node = ref object
+  kind: string
+
+proc renameHook(v: var Node, fieldName: var string) =
+  if fieldName == "type":
+    fieldName = "kind"
+
+var node = fromJson[Node]("""{"type":"root"}""")
+doAssert node.kind == "root"
