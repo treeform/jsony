@@ -71,7 +71,6 @@ proc parseHook*(s: string, i: var int, v: var SomeFloat) =
 
 proc parseHook*(s: string, i: var int, v: var string) =
   ## Parse string.
-  #echo "S:", s[i .. min(i + 80, s.len-1)]
   eatSpace(s, i)
   if s[i] == 'n':
     let what = parseSymbol(s, i)
@@ -150,10 +149,8 @@ proc parseHook*[T: array](s: string, i: var int, v: var T) =
 
 proc skipValue(s: string, i: var int) =
   ## Used to skip values of extra fields.
-  #echo "Skip:", s[i .. min(i + 80, s.len-1)]
   eatSpace(s, i)
   if s[i] == '{':
-    #echo "skip obj"
     eatChar(s, i, '{')
     while i < s.len:
       eatSpace(s, i)
@@ -167,7 +164,6 @@ proc skipValue(s: string, i: var int) =
         inc i
     eatChar(s, i, '}')
   elif s[i] == '[':
-    #echo "skip arr"
     eatChar(s, i, '[')
     while i < s.len:
       eatSpace(s, i)
@@ -179,11 +175,9 @@ proc skipValue(s: string, i: var int) =
         inc i
     eatChar(s, i, ']')
   elif s[i] == '"':
-    #echo "skip str"
     var str: string
     parseHook(s, i, str)
   else:
-    #echo "skip sym"
     discard parseSymbol(s, i)
 
 proc camelCase(s: string): string =
