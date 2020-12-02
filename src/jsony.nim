@@ -8,6 +8,8 @@ proc parseJson[T](s: string, i: var int, v: var seq[T])
 proc parseJson[T:enum](s: string, i: var int, v: var T)
 proc parseJson[T:object|ref object](s: string, i: var int, v: var T)
 proc parseJson[T](s: string, i: var int, v: var Table[string, T])
+proc parseJson[T:tuple](s: string, i: var int, v: var T)
+proc parseJson[T:array](s: string, i: var int, v: var T)
 
 template error(msg: string, i: int) =
   ## Short cut to raise an exception.
@@ -121,6 +123,30 @@ proc parseJson[T](s: string, i: var int, v: var seq[T]) =
       inc i
     else:
       break
+  eat(s, i, ']')
+
+proc parseJson[T:tuple](s: string, i: var int, v: var T) =
+  eatSpace(s, i)
+  var strV: string
+  eat(s, i, '[')
+  for name, value in v.fieldPairs:
+    eatSpace(s, i)
+    parseJson(s, i, value)
+    eatSpace(s, i)
+    if s[i] == ',':
+      inc i
+  eat(s, i, ']')
+
+proc parseJson[T:array](s: string, i: var int, v: var T) =
+  eatSpace(s, i)
+  var strV: string
+  eat(s, i, '[')
+  for value in v.mitems:
+    eatSpace(s, i)
+    parseJson(s, i, value)
+    eatSpace(s, i)
+    if s[i] == ',':
+      inc i
   eat(s, i, ']')
 
 proc skipValue(s: string, i: var int) =
