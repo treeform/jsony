@@ -118,7 +118,7 @@ proc parseHook(s: string, i: var int, v: var DateTime) =
 var dt = fromJson[DateTime](""" "2020-01-01 00:00:00" """)
 ```
 
-Some times json gives you a object of entries with their id as keys, but you might want it as a sequence with ids inside the objects, again you can do anything with `parseHook()`:
+Some times json gives you an object of entries with their id as keys, but you might want it as a sequence with ids inside the objects, again you can do anything with `parseHook()`:
 
 ```nim
 type Entry = object
