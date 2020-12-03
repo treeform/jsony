@@ -6,7 +6,7 @@ With this library you can parse json your way, from the mess you get to the obje
 
 ## Fast/No garbage.
 
-Current standard module first parses json into JsonNodes and then turns the JsonNodes into your objects with the `to()` macro. This is slower and creates unnecessary work for the garbage collector. This library skips the JsonNodes and creates the objects you want directly.
+Currently the Nim standard module first parses json into JsonNodes and then turns the JsonNodes into your objects with the `to()` macro. This is slower and creates unnecessary work for the garbage collector. This library skips the JsonNodes and creates the objects you want directly.
 
 ## Can parse most object types:
 
@@ -30,7 +30,7 @@ var v = fromJson[Entry1](s)
 doAssert v.color == ""
 ```
 
-## Snake_case or CamelCase
+## Converts snake_case to camelCase.
 
 Nim usually uses `camelCase` for its variables, while a bunch of json in the wild uses `snake_case`. This library will convert `snake_case` to `camelCase` for you when reading json.
 
@@ -49,7 +49,7 @@ doAssert v.colorBlend == "red"
 
 ### `proc newHook()` Can be used to populate default values.
 
-Some times absence of a field means it should have a default value. Normally this would just be Nim's default value for the variable type. But with the newHook() you can setup the object with defaults before the main parsing happens.
+Sometimes the absence of a field means it should have a default value. Normally this would just be Nim's default value for the variable type but that isn't always what you want. With the newHook() you can set initialize the object your defaults before the main parsing happens.
 
 ```nim
 type
@@ -68,7 +68,7 @@ doAssert v.visible == "yes"
 
 ### `proc enumHook()` Can be used to parse enums.
 
-In wild json enums name almost never match to nim enum names that usually have a prefix. The enumHook() allows you to rename the enums to your internal names.
+In the wild json enum names almost never match to Nim enum names which usually have a prefix. The enumHook() allows you to rename the enums to your internal names.
 
 ```nim
 type Color2 = enum
@@ -90,7 +90,7 @@ doAssert fromJson[Color2](""" "GREEN" """) == c2Green
 
 ### `proc renameHook()` Can be used to rename fields at run time.
 
-In wild json field names can be reserved words such as type, class, or array. With the renameHook you can rename fields to what you want on the type you need.
+In the wild json field names can be reserved words such as type, class, or array. With the renameHook you can rename fields to what you want.
 
 ```nim
 type Node = ref object
@@ -118,7 +118,7 @@ proc parseHook(s: string, i: var int, v: var DateTime) =
 var dt = fromJson[DateTime](""" "2020-01-01 00:00:00" """)
 ```
 
-Some times json gives you an object of entries with their id as keys, but you might want it as a sequence with ids inside the objects, again you can do anything with `parseHook()`:
+Sometimes json gives you an object of entries with their id as keys, but you might want it as a sequence with ids inside the objects. You can handle this and many other scenarios with `parseHook()`:
 
 ```nim
 type Entry = object

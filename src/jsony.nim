@@ -12,11 +12,11 @@ proc parseHook*[T: tuple](s: string, i: var int, v: var T)
 proc parseHook*[T: array](s: string, i: var int, v: var T)
 
 template error(msg: string, i: int) =
-  ## Short cut to raise an exception.
+  ## Shortcut to raise an exception.
   raise newException(JsonError, msg)
 
 proc eatSpace*(s: string, i: var int) =
-  ## Will consume white space.
+  ## Will consume whitespace.
   while i < s.len:
     let c = s[i]
     if c in whiteSpace:
@@ -296,7 +296,6 @@ proc parseHook*[T](s: string, i: var int, v: var Table[string, T]) =
 
 proc fromJson*[T](s: string): T =
   ## Takes json and outputs the object it represents.
-  ## * Create little intermediate values.
   ## * Extra json fields are ignored.
   ## * Missing json fields keep their default values.
   ## * `proc newHook(foo: var ...)` Can be used to populate default values.
