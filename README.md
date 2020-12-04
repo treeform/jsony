@@ -1,5 +1,7 @@
 # JSONy - A loose, direct to object json parser with hooks.
 
+`nimble install jsony`
+
 Real world json is *never what you want*. It might have extra fields that you don't care about. It might have missing fields requiring default values. It might change or grow new fields at any moment. Json might use `camelCase` or `snake_case`. It might use inconsistent naming.
 
 With this library you can parse json your way, from the mess you get to the objects you want.
