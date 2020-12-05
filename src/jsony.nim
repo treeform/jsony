@@ -19,10 +19,8 @@ proc eatSpace*(s: string, i: var int) =
   ## Will consume whitespace.
   while i < s.len:
     let c = s[i]
-    if c in whiteSpace:
-      discard
-    else:
-      return
+    if c notin whiteSpace:
+      break
     inc i
 
 proc eatChar*(s: string, i: var int, c: char) =
