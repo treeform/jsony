@@ -22,24 +22,17 @@ proc genTree(depth: int): Node =
 
 var tree = genTree(10)
 
-var treeStr = $(%tree)
-var treePrettyStr = json.pretty(%tree)
+var treeStr = pretty(%tree)
 
 echo genId, " node tree:"
 
 timeIt "treeform/jsony":
   keep jsony.fromJson[Node](treeStr)
 
-timeIt "treeform/jsony pretty":
-  keep jsony.fromJson[Node](treePrettyStr)
-
 timeIt "nim std/json":
   keep json.parseJson(treeStr).to(Node)
 
 timeIt "araq/packedjson":
-  keep packedjson.parseJson(treeStr)
-
-timeIt "araq/packedjson with to":
   keep deserialiser.to(packedjson.parseJson(treeStr).toJsonNode(), Node)
 
 timeIt "treeform/jsutils/jsons":
@@ -47,6 +40,3 @@ timeIt "treeform/jsutils/jsons":
 
 timeIt "planetis-m/eminim":
   keep newStringStream(treeStr).jsonTo(Node)
-
-timeIt "planetis-m/eminim pretty":
-  keep newStringStream(treePrettyStr).jsonTo(Node)
