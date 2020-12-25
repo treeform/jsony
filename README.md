@@ -51,7 +51,7 @@ doAssert v.colorBlend == "red"
 
 ### `proc newHook()` Can be used to populate default values.
 
-Sometimes the absence of a field means it should have a default value. Normally this would just be Nim's default value for the variable type but that isn't always what you want. With the newHook() you can set initialize the object your defaults before the main parsing happens.
+Sometimes the absence of a field means it should have a default value. Normally this would just be Nim's default value for the variable type but that isn't always what you want. With the newHook() you can initialize the object's defaults before the main parsing happens.
 
 ```nim
 type
@@ -66,6 +66,23 @@ var s = """{"id":"123"}"""
 var v = fromJson[Foo5](s)
 doAssert v.id == "123"
 doAssert v.visible == "yes"
+```
+
+### `proc postHook()` Can be used to run code after the object is fully parsed.
+
+Some times we need run some code after the object is created. For example to set other values based on values that where set but are not part of the json data. Maybe to sanitize the object or convert older versions to new versions. Here I need to retain the original size as I will be messing with the object's regular size:
+
+```nim
+type Sizer = object
+  size: int
+  originalSize: int
+
+proc postHook(v: var Sizer) =
+  v.originalSize = v.size
+
+var sizer = fromJson[Sizer]("""{"size":10}""")
+doAssert sizer.size == 10
+doAssert sizer.originalSize == 10
 ```
 
 ### `proc enumHook()` Can be used to parse enums.

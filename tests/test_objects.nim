@@ -152,3 +152,14 @@ proc renameHook(v: var Node, fieldName: var string) =
 
 var node = fromJson[Node]("""{"type":"root"}""")
 doAssert node.kind == "root"
+
+type Sizer = object
+  size: int
+  originalSize: int
+
+proc postHook(v: var Sizer) =
+  v.originalSize = v.size
+
+var sizer = fromJson[Sizer]("""{"size":10}""")
+doAssert sizer.size == 10
+doAssert sizer.originalSize == 10

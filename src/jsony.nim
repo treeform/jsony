@@ -271,6 +271,8 @@ proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
       inc i
     else:
       break
+  when compiles(postHook(v)):
+    postHook(v)
   eatChar(s, i, '}')
 
 proc parseHook*[T](s: string, i: var int, v: var Table[string, T]) =
