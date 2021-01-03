@@ -1,16 +1,42 @@
-# JSONy - A loose, direct to object json parser with hooks.
+# JSONy - A loose, direct to object json parser and serializer with hooks.
 
 `nimble install jsony`
 
+```nim
+@[1, 2, 3].toJson() -> "[1,2,3]"
+"[1, 2, 3]".fromJson(seq[int]) -> @[1, 2, 3]
+```
+
 Real world json is *never what you want*. It might have extra fields that you don't care about. It might have missing fields requiring default values. It might change or grow new fields at any moment. Json might use `camelCase` or `snake_case`. It might use inconsistent naming.
 
-With this library you can parse json your way, from the mess you get to the objects you want.
+With this library you can use json your way, from the mess you get to the objects you want.
 
-## Fast/No garbage.
+## Fast.
 
-Currently the Nim standard module first parses json into JsonNodes and then turns the JsonNodes into your objects with the `to()` macro. This is slower and creates unnecessary work for the garbage collector. This library skips the JsonNodes and creates the objects you want directly.
+Currently the Nim standard module first parses or serializes json into JsonNodes and then turns the JsonNodes into your objects with the `to()` macro. This is slower and creates unnecessary work for the garbage collector. This library skips the JsonNodes and creates the objects you want directly.
 
-## Can parse most object types:
+Another speed up comes from not using `StringStream`. `Stream` has a function dispatch overhead because it has not know if you are using it as a `StringStream` or `FileStream`. Jsony skips the overhead and just directly writes to memory buffers.
+
+### Parse speed.
+```
+name ............................... min time      avg time    std dv  times
+treeform/jsony .................... 10.121 ms     10.809 ms    ±1.208   x100
+planetis-m/eminim ................. 12.006 ms     12.574 ms    ±1.156   x100
+nim std/json ...................... 23.282 ms     34.679 ms    ±7.512   x100
+```
+
+### Serialize speed.
+```
+name ............................... min time      avg time    std dv  times
+treeform/jsony ..................... 4.047 ms      4.172 ms    ±0.225   x100
+planetis-m/eminim .................. 7.173 ms      7.324 ms    ±0.253   x100
+disruptek/jason ................... 10.220 ms     11.155 ms    ±0.689   x100
+nim std/json ...................... 11.526 ms     15.181 ms    ±0.857   x100
+```
+
+Note: If you find a faster nim json parser or serializer let me know!
+
+## Can parse or serializer most types:
 
 * numbers and strings
 * objects and ref objects
@@ -168,4 +194,26 @@ Gives us:
   (id: "2", count: 66, filled: 0),
   (id: "3", count: 99, filled: 99)
 ]"""
+```
+
+### `proc dumpHook()` Can be used to serializer into custom representation.
+
+Just like reading custom data types you can also write faster data types with `dumpHook`. Using `Fraction` from the above example:
+
+```nim
+proc dumpHook(s: var string, v: Fraction) =
+  ## Output fraction type as a string "x/y".
+  s.add '"'
+  s.add $v.numerator
+  s.add '/'
+  s.add $v.denominator
+  s.add '"'
+
+var f = Fraction(numerator: 10, denominator: 13)
+let s = f.toJson()
+```
+
+Gives us:
+```
+"10/13"
 ```

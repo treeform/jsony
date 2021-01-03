@@ -302,3 +302,81 @@ proc fromJson*[T](s: string): T =
 
   var i = 0
   parseHook(s, i, result)
+
+proc dumpHook*(s: var string, v: bool) =
+  if v:
+    s.add "true"
+  else:
+    s.add "false"
+
+proc dumpHook*(s: var string, v: SomeNumber) =
+  s.add $v
+
+proc dumpHook*(s: var string, v: string) =
+  s.add '"'
+  for c in v:
+    case c:
+    of '\\': s.add r"\\"
+    of '\b': s.add r"\b"
+    of '\f': s.add r"\f"
+    of '\n': s.add r"\n"
+    of '\r': s.add r"\r"
+    of '\t': s.add r"\t"
+    else:
+      s.add c
+  s.add '"'
+
+proc dumpHook*(s: var string, v: char) =
+  s.add '"'
+  s.add v
+  s.add '"'
+
+proc dumpHook*(s: var string, v: object) =
+  s.add '{'
+  var i = 0
+  when compiles(for k, e in v.pairs: discard):
+    # Tables and table like objects.
+    for k, e in v.pairs:
+      if i > 0:
+        s.add ','
+      s.dumpHook(k)
+      s.add ':'
+      s.dumpHook(e)
+      inc i
+  else:
+    # Normal objects.
+    for k, e in v.fieldPairs:
+      if i > 0:
+        s.add ','
+      s.dumpHook(k)
+      s.add ':'
+      s.dumpHook(e)
+      inc i
+  s.add '}'
+
+proc dumpHook*(s: var string, v: ref object) =
+  if v == nil:
+    s.add "null"
+  else:
+    s.dumpHook(v[])
+
+proc dumpHook*(s: var string, v: tuple) =
+  s.add '['
+  var i = 0
+  for _, e in v.fieldPairs:
+    if i > 0:
+      s.add ','
+    s.dumpHook(e)
+    inc i
+  s.add ']'
+
+proc dumpHook*[T](s: var string, v: openarray[T]) =
+  s.add '['
+  for i, e in v:
+    if i != 0:
+      s.add ','
+    s.dumpHook(e)
+  s.add ']'
+
+proc toJson*[T](v: T): string =
+  dumpHook(result, v)
