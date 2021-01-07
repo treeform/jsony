@@ -15,7 +15,7 @@ With this library you can use json your way, from the mess you get to the object
 
 Currently the Nim standard module first parses or serializes json into JsonNodes and then turns the JsonNodes into your objects with the `to()` macro. This is slower and creates unnecessary work for the garbage collector. This library skips the JsonNodes and creates the objects you want directly.
 
-Another speed up comes from not using `StringStream`. `Stream` has a function dispatch overhead because it has not know if you are using it as a `StringStream` or `FileStream`. Jsony skips the overhead and just directly writes to memory buffers.
+Another speed up comes from not using `StringStream`. Stream has a function dispatch overhead because it has to be able to switch between `StringStream` or `FileStream` at runtime. Jsony skips the overhead and just directly reads or writes to memory buffers.
 
 ### Parse speed.
 ```
