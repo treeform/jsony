@@ -17,6 +17,8 @@ Currently the Nim standard module first parses or serializes json into JsonNodes
 
 Another speed up comes from not using `StringStream`. Stream has a function dispatch overhead because it has to be able to switch between `StringStream` or `FileStream` at runtime. Jsony skips the overhead and just directly reads or writes to memory buffers.
 
+Another speed up comes from parsing and readings its own numbers directly from memory buffer. This allows it to by pass `string` allocations that `parseInt` or `$` create.
+
 ### Parse speed.
 ```
 name ............................... min time      avg time    std dv  times
