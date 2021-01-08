@@ -57,12 +57,13 @@ timeIt "planetis-m/eminim", 100:
 
 echo "serialize:"
 
+timeIt "treeform/jsony", 100:
+  keep tree.toJson()
+
 when not defined(gcArc):
   timeIt "status-im/nim-json-serialization", 100:
     keep json_serialization.Json.encode(tree)
-
-timeIt "treeform/jsony", 100:
-  keep tree.toJson()
+  doAssert json_serialization.Json.encode(tree) == treeStr
 
 timeIt "planetis-m/eminim", 100:
   var s = newStringStream()

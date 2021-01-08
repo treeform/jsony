@@ -29,11 +29,11 @@ planetis-m/eminim ................. 10.974 ms     18.355 ms    ±3.994   x100
 ### Serialize speed.
 ```
 name ............................... min time      avg time    std dv  times
-status-im/nim-json-serialization ... 2.048 ms      3.302 ms    ±0.788   x100
-treeform/jsony ..................... 2.130 ms      3.578 ms    ±0.681   x100
-planetis-m/eminim .................. 6.087 ms     11.925 ms    ±3.067   x100
-disruptek/jason ................... 10.398 ms     15.784 ms    ±2.418   x100
-nim std/json ...................... 12.376 ms     19.531 ms    ±3.366   x100
+treeform/jsony ..................... 1.531 ms      2.779 ms    ±0.091   x100
+status-im/nim-json-serialization ... 2.043 ms      3.448 ms    ±0.746   x100
+planetis-m/eminim .................. 5.951 ms      9.305 ms    ±3.210   x100
+disruptek/jason ................... 10.312 ms     13.471 ms    ±3.107   x100
+nim std/json ...................... 12.551 ms     19.419 ms    ±4.039   x100
 ```
 
 Note: If you find a faster nim json parser or serializer let me know!

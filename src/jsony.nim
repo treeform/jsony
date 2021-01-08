@@ -323,21 +323,44 @@ proc dumpHook*(s: var string, v: bool) =
 when defined(release):
   {.push checks: off.}
 
+const lookup = ['0', '0', '0', '1', '0', '2', '0', '3', '0', '4', '0', '5', '0', '6', '0', '7', '0', '8', '0', '9', '1', '0', '1', '1', '1', '2', '1', '3', '1', '4', '1', '5', '1', '6', '1', '7', '1', '8', '1', '9', '2', '0', '2', '1', '2', '2', '2', '3', '2', '4', '2', '5', '2', '6', '2', '7', '2', '8', '2', '9', '3', '0', '3', '1', '3', '2', '3', '3', '3', '4', '3', '5', '3', '6', '3', '7', '3', '8',
+'3', '9', '4', '0', '4', '1', '4', '2', '4', '3', '4', '4', '4', '5', '4', '6', '4', '7', '4', '8', '4', '9', '5', '0', '5', '1', '5', '2', '5', '3', '5', '4', '5', '5', '5', '6', '5', '7', '5', '8', '5', '9', '6', '0', '6', '1', '6', '2', '6', '3', '6', '4', '6', '5', '6', '6', '6', '7', '6', '8', '6', '9', '7', '0', '7', '1', '7', '2', '7', '3', '7', '4', '7', '5', '7', '6', '7', '7', '7', '8', '7', '9', '8', '0', '8', '1', '8', '2', '8', '3', '8', '4', '8', '5', '8', '6', '8', '7',
+'8', '8', '8', '9', '9', '0', '9', '1', '9', '2', '9', '3', '9', '4', '9', '5', '9', '6', '9', '7', '9', '8', '9', '9', '1', '0', '0']
+
+template grow(s: var string, amount: int) =
+  s.setLen(s.len + amount)
+
 proc dumpHook*(s: var string, v: uint|uint8|uint16|uint32|uint64) =
-  if v == 0:
-    s.add '0'
-    return
-  var digits: array[20, char]
-  var v = v
-  var p = 0
-  while v != 0:
-    digits[p] = ('0'.ord + v mod 10).char
-    inc p
-    v = v div 10
-  dec p
-  while p >= 0:
-    s.add digits[p]
+  when nimvm:
+    s.add $v
+  else:
+    # Its faster to not allocate a string for a number,
+    # but to write it out the digits directly.
+    if v == 0:
+      s.add '0'
+      return
+    # Max size of a uin64 number is 20 digits.
+    var digits: array[20, char]
+    var v = v
+    var p = 0
+    while v != 0:
+      # Its faster to look up 2 digits at a time, less int divisions.
+      let idx = v mod 100
+      digits[p] = lookup[idx*2+1]
+      inc p
+      digits[p] = lookup[idx*2]
+      inc p
+      v = v div 100
+    var at = s.len
+    if digits[p-1] == '0':
+      dec p
+    s.grow(p)
     dec p
+    var ss = cast[ptr UncheckedArray[char]](s[0].addr)
+    while p >= 0:
+      ss[at] = digits[p]
+      dec p
+      inc at
 
 proc dumpHook*(s: var string, v: int|int8|int16|int32|int64) =
   if v < 0:
@@ -353,18 +376,49 @@ proc dumpHook*(s: var string, v: SomeFloat) =
   s.add $v
 
 proc dumpHook*(s: var string, v: string) =
-  s.add '"'
-  for c in v:
-    case c:
-    of '\\': s.add r"\\"
-    of '\b': s.add r"\b"
-    of '\f': s.add r"\f"
-    of '\n': s.add r"\n"
-    of '\r': s.add r"\r"
-    of '\t': s.add r"\t"
-    else:
-      s.add c
-  s.add '"'
+  when nimvm:
+    s.add '"'
+    for c in v:
+      case c:
+      of '\\': s.add r"\\"
+      of '\b': s.add r"\b"
+      of '\f': s.add r"\f"
+      of '\n': s.add r"\n"
+      of '\r': s.add r"\r"
+      of '\t': s.add r"\t"
+      else:
+        s.add c
+    s.add '"'
+  else:
+    # Its faster to grow the string only once.
+    # Then fill the string with pointers.
+    # Then cap it off to right length.
+    var at = s.len
+    s.grow(v.len*2)
+
+    var ss = cast[ptr UncheckedArray[char]](s[0].addr)
+    template add(ss: ptr UncheckedArray[char], c: char) =
+      ss[at] = c
+      inc at
+    template add(ss: ptr UncheckedArray[char], c1, c2: char) =
+      ss[at] = c1
+      inc at
+      ss[at] = c2
+      inc at
+
+    ss.add '"'
+    for c in v:
+      case c:
+      of '\\': ss.add '\\', '\\'
+      of '\b': ss.add '\\', 'b'
+      of '\f': ss.add '\\', 'f'
+      of '\n': ss.add '\\', 'n'
+      of '\r': ss.add '\\', 'r'
+      of '\t': ss.add '\\', 't'
+      else:
+        ss.add c
+    ss.add '"'
+    s.setLen(at)
 
 template dumpKey(s: var string, v: string) =
   const v2 = v.toJson() & ":"
