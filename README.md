@@ -20,8 +20,8 @@ Another speed up comes from not using `StringStream`. Stream has a function disp
 ### Parse speed.
 ```
 name ............................... min time      avg time    std dv  times
+treeform/jsony ..................... 6.311 ms      9.688 ms    ±3.301   x100
 status-im/nim-json-serialization ... 7.119 ms     14.276 ms    ±2.033   x100
-treeform/jsony ..................... 8.831 ms     15.832 ms    ±2.170   x100
 nim std/json ...................... 24.141 ms     38.741 ms    ±5.417   x100
 planetis-m/eminim ................. 10.974 ms     18.355 ms    ±3.994   x100
 ```

@@ -10,12 +10,55 @@ when not defined(gcArc):
   import json_serialization except Json, toJson
 
 
-# timeIt "treeform/jsony", 100:
-#   keep jsony.fromJson[Node](treeStr)
+block:
+  echo "deserialize string:"
+  var jsonStr = "\"hello there how are you?\""
+  timeIt "treeform/jsony", 100:
+    for i in 0 ..< 1000:
+      keep fromJson[string](jsonStr)
 
-# when not defined(gcArc):
-#   timeIt "status-im/nim-json-serialization", 100:
-#     keep json_serialization.Json.decode(treeStr, Node)
+  when not defined(gcArc):
+    timeIt "status-im/nim-json-serialization", 100:
+      for i in 0 ..< 1000:
+        keep json_serialization.Json.decode(jsonStr, string)
+
+block:
+  echo "deserialize obj:"
+  type Node = ref object
+    active: bool
+    kind: string
+    name: string
+    id: int
+    kids: seq[Node]
+  var node = Node()
+  var jsonStr = node.toJson()
+  timeIt "treeform/jsony", 100:
+    for i in 0 ..< 1000:
+      keep fromJson[Node](jsonStr)
+
+  when not defined(gcArc):
+    timeIt "status-im/nim-json-serialization", 100:
+      for i in 0 ..< 1000:
+        keep json_serialization.Json.decode(jsonStr, Node)
+
+block:
+  echo "deserialize seq[obj]:"
+  type Node = object
+    active: bool
+    kind: string
+    name: string
+    id: int
+    kids: seq[Node]
+  var seqObj: seq[Node]
+  for i in 0 ..< 100000:
+    seqObj.add(Node())
+  var jsonStr = seqObj.toJson()
+  timeIt "treeform/jsony", 100:
+    keep fromJson[seq[Node]](jsonStr)
+
+  when not defined(gcArc):
+    timeIt "status-im/nim-json-serialization", 100:
+      keep json_serialization.Json.decode(jsonStr, seq[Node])
 
 block:
   echo "serialize int:"
@@ -37,7 +80,6 @@ block:
     timeIt "status-im/nim-json-serialization", 100:
       for i in 0 ..< 1000:
         keep json_serialization.Json.encode(number42)
-
 
 block:
   echo "serialize string:"

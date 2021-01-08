@@ -13,9 +13,9 @@ proc parseHook*[T: array](s: string, i: var int, v: var T)
 
 template error(msg: string, i: int) =
   ## Shortcut to raise an exception.
-  raise newException(JsonError, msg)
+  raise newException(JsonError, msg & " At offset: " & $i)
 
-proc eatSpace*(s: string, i: var int) =
+template eatSpace*(s: string, i: var int) =
   ## Will consume whitespace.
   while i < s.len:
     let c = s[i]
@@ -23,7 +23,7 @@ proc eatSpace*(s: string, i: var int) =
       break
     inc i
 
-proc eatChar*(s: string, i: var int, c: char) =
+template eatChar*(s: string, i: var int, c: char) =
   ## Will consume space before and then the character `c`.
   ## Will raise an exception if `c` is not found.
   eatSpace(s, i)
@@ -32,7 +32,7 @@ proc eatChar*(s: string, i: var int, c: char) =
   if s[i] == c:
     inc i
   else:
-    error("Expected " & c & " at offset.", i)
+    error("Expected " & c & ".", i)
 
 proc parseSymbol*(s: string, i: var int): string =
   ## Will read a symbol and return it.
@@ -50,18 +50,53 @@ proc parseSymbol*(s: string, i: var int): string =
 
 proc parseHook*(s: string, i: var int, v: var bool) =
   ## Will parse boolean true or false.
-  case parseSymbol(s, i)
-  of "true":
-    v = true
-  of "false":
-    v = false
+  when nimvm:
+    case parseSymbol(s, i)
+    of "true":
+      v = true
+    of "false":
+      v = false
+    else:
+      error("Boolean true or false expected.", i)
   else:
-    error("Boolean true or false expected.", i)
+    # Its faster to do char by char scan:
+    eatSpace(s, i)
+    if i + 3 < s.len and s[i+0] == 't' or s[i+1] == 'r' or s[i+2] == 'u' or s[i+3] == 'e':
+      i += 4
+      v = true
+    elif i + 4 < s.len and s[i+0] == 'f' or s[i+1] == 'a' or s[i+2] == 'l' or s[i+3] == 's' or s[i+4] == 'e':
+      i += 5
+      v = false
+    else:
+      error("Boolean true or false expected.", i)
 
-proc parseHook*(s: string, i: var int, v: var SomeInteger) =
-  ## Will parse int8, uint8, int16, uint16, int32, uint32, int64, uint64 or
-  ## just int.
-  v = type(v)(parseInt(parseSymbol(s, i)))
+proc parseHook*(s: string, i: var int, v: var SomeUnsignedInt) =
+  ## Will parse unsigned integers.
+  when nimvm:
+    v = type(v)(parseInt(parseSymbol(s, i)))
+  else:
+    eatSpace(s, i)
+    var v2: uint64 = 0
+    while i < s.len and s[i] in {'0'..'9'}:
+      v2 = v2 * 10 + (s[i].ord - '0'.ord).uint64
+      inc i
+    v = type(v)(v2)
+
+proc parseHook*(s: string, i: var int, v: var SomeSignedInt) =
+  ## Will parse signed integers.
+  when nimvm:
+    v = type(v)(parseInt(parseSymbol(s, i)))
+  else:
+    eatSpace(s, i)
+    if s[i] == '-':
+      var v2: uint64
+      inc i
+      parseHook(s, i, v2)
+      v = -type(v)(v2)
+    else:
+      var v2: uint64
+      parseHook(s, i, v2)
+      v = type(v)(v2)
 
 proc parseHook*(s: string, i: var int, v: var SomeFloat) =
   ## Will parse float32 and float64.
@@ -70,12 +105,9 @@ proc parseHook*(s: string, i: var int, v: var SomeFloat) =
 proc parseHook*(s: string, i: var int, v: var string) =
   ## Parse string.
   eatSpace(s, i)
-  if s[i] == 'n':
-    let what = parseSymbol(s, i)
-    if what == "null":
-      return
-    else:
-      error("Expected \" or null at offset.", i)
+  if i + 3 < s.len and s[i+0] == 'n' and s[i+1] == 'u' and s[i+2] == 'l' and s[i+3] == 'l':
+    i += 4
+    return
   eatChar(s, i, '"')
   while i < s.len:
     let c = s[i]
@@ -245,12 +277,15 @@ proc parseHook*[T: enum](s: string, i: var int, v: var T) =
 proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
   ## Parse an object.
   eatSpace(s, i)
-  if s[i] == 'n':
-    let what = parseSymbol(s, i)
-    if what == "null":
-      return
-    else:
-      error("Expected {} or null at offset.", i)
+  # if s[i] == 'n':
+  #   let what = parseSymbol(s, i)
+  #   if what == "null":
+  #     return
+  #   else:
+  #     error("Expected {} or null.", i)
+  if i + 3 < s.len and s[i+0] == 'n' and s[i+1] == 'u' and s[i+2] == 'l' and s[i+3] == 'l':
+    i += 4
+    return
   eatChar(s, i, '{')
   when compiles(newHook(v)):
     newHook(v)
@@ -394,7 +429,7 @@ proc dumpHook*(s: var string, v: string) =
     # Then fill the string with pointers.
     # Then cap it off to right length.
     var at = s.len
-    s.grow(v.len*2)
+    s.grow(v.len*2+2)
 
     var ss = cast[ptr UncheckedArray[char]](s[0].addr)
     template add(ss: ptr UncheckedArray[char], c: char) =

@@ -21,9 +21,9 @@ var genId: int
 proc genTree(depth: int): Node =
   result = Node()
   result.id = genId
+  inc genId
   if r.rand(0 .. 1) == 0:
     result.active = true
-  inc genId
   result.name = "node" & $result.id
   result.kind = "NODE"
   if depth > 0:
@@ -35,14 +35,16 @@ proc genTree(depth: int): Node =
 var tree = genTree(10)
 
 var treeStr = tree.toJson()
-
+echo treeStr[0 ..< 100]
 echo genId, " node tree:"
 
 when not defined(gcArc):
-  timeIt "status-im/nim-json-serialization", 100:
+  timeIt "status-im/nim-json-serialization", 1000:
     keep json_serialization.Json.decode(treeStr, Node)
 
-timeIt "treeform/jsony", 100:
+  doAssert json_serialization.Json.decode(treeStr, Node).toJson() == treeStr
+
+timeIt "treeform/jsony", 1000:
   keep jsony.fromJson[Node](treeStr)
 
 when defined(packedjson):
