@@ -303,6 +303,16 @@ proc fromJson*[T](s: string): T =
   var i = 0
   parseHook(s, i, result)
 
+proc dumpHook*(s: var string, v: bool)
+proc dumpHook*(s: var string, v: SomeNumber)
+proc dumpHook*(s: var string, v: string)
+proc dumpHook*(s: var string, v: char)
+proc dumpHook*(s: var string, v: tuple)
+proc dumpHook*[N, T](s: var string, v: array[N, T])
+proc dumpHook*[T](s: var string, v: seq[T])
+proc dumpHook*(s: var string, v: object)
+proc dumpHook*(s: var string, v: ref object)
+
 proc dumpHook*(s: var string, v: bool) =
   if v:
     s.add "true"
@@ -330,6 +340,34 @@ proc dumpHook*(s: var string, v: char) =
   s.add '"'
   s.add v
   s.add '"'
+
+proc dumpHook*(s: var string, v: tuple) =
+  s.add '['
+  var i = 0
+  for _, e in v.fieldPairs:
+    if i > 0:
+      s.add ','
+    s.dumpHook(e)
+    inc i
+  s.add ']'
+
+proc dumpHook*[N, T](s: var string, v: array[N, T]) =
+  s.add '['
+  var i = 0
+  for e in v:
+    if i != 0:
+      s.add ','
+    s.dumpHook(e)
+    inc i
+  s.add ']'
+
+proc dumpHook*[T](s: var string, v: seq[T]) =
+  s.add '['
+  for i, e in v:
+    if i != 0:
+      s.add ','
+    s.dumpHook(e)
+  s.add ']'
 
 proc dumpHook*(s: var string, v: object) =
   s.add '{'
@@ -360,23 +398,20 @@ proc dumpHook*(s: var string, v: ref object) =
   else:
     s.dumpHook(v[])
 
-proc dumpHook*(s: var string, v: tuple) =
-  s.add '['
-  var i = 0
-  for _, e in v.fieldPairs:
-    if i > 0:
-      s.add ','
-    s.dumpHook(e)
-    inc i
-  s.add ']'
-
-proc dumpHook*[T](s: var string, v: openarray[T]) =
-  s.add '['
-  for i, e in v:
-    if i != 0:
-      s.add ','
-    s.dumpHook(e)
-  s.add ']'
-
 proc toJson*[T](v: T): string =
   dumpHook(result, v)
+
+template toStaticJson*(v: untyped): static[string] =
+  ## This will turn v into json at compile time and return the json string.
+  const s = v.toJson()
+  s
+
+# A compiler bug prevents this from working. Otherwise toStaticJson and toJson
+# can be same thing.
+# TODO: Figure out the compiler bug.
+# proc toJsonDynamic*[T](v: T): string =
+#   dumpHook(result, v)
+# template toJson*[T](v: static[T]): string =
+#   ## This will turn v into json at compile time and return the json string.
+#   const s = v.toJsonDynamic()
+#   s

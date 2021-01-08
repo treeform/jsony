@@ -1,8 +1,13 @@
 import benchy, random, streams
 import jsony, jason
 import eminim
-#import packedjson, packedjson/deserialiser
-import json
+when defined(packedjson):
+  import packedjson, packedjson/deserialiser
+else:
+  import json
+when not defined(gcArc):
+  import serialization
+  import json_serialization except Json, toJson
 
 type Node = ref object
   active: bool
@@ -36,28 +41,33 @@ echo genId, " node tree:"
 timeIt "treeform/jsony", 100:
   keep jsony.fromJson[Node](treeStr)
 
-timeIt "nim std/json", 100:
-  keep json.to(json.parseJson(treeStr), Node)
-
-# timeIt "araq/packedjson", 100:
-#   keep deserialiser.to(packedjson.parseJson(treeStr), Node)
+when defined(packedjson):
+  timeIt "araq/packedjson", 100:
+    keep deserialiser.to(packedjson.parseJson(treeStr), Node)
+else:
+  timeIt "nim std/json", 100:
+    keep json.to(json.parseJson(treeStr), Node)
 
 timeIt "planetis-m/eminim", 100:
   keep newStringStream(treeStr).jsonTo(Node)
 
 # timeIt "disruptek/jason", 100:
-#   discard
+#   keep
+when not defined(gcArc):
+  timeIt "status-im/nim-json-serialization", 100:
+    keep json_serialization.Json.decode(treeStr, Node)
 
 echo "serialize:"
 
 timeIt "treeform/jsony", 100:
   keep tree.toJson()
 
-timeIt "nim std/json", 100:
-  keep json.`$`(json.`%`(tree))
-
-# timeIt "araq/packedjson", 100:
-#   keep packedjson.`$`(packedjson.`%`(tree))
+when defined(packedjson):
+  timeIt "araq/packedjson", 100:
+    keep packedjson.`$`(packedjson.`%`(tree))
+else:
+  timeIt "nim std/json", 100:
+    keep json.`$`(json.`%`(tree))
 
 timeIt "planetis-m/eminim", 100:
   var s = newStringStream()
@@ -66,4 +76,8 @@ timeIt "planetis-m/eminim", 100:
   keep s.data
 
 timeIt "disruptek/jason", 100:
-  keep tree.jason
+  keep tree.jason.string
+
+when not defined(gcArc):
+  timeIt "status-im/nim-json-serialization", 100:
+    keep json_serialization.Json.encode(tree)
