@@ -39,6 +39,7 @@ block:
       b: float
       c: string
   var obj = Obj()
+  echo obj.toJson()
   doAssert obj.toJson() == """{"a":0,"b":0.0,"c":""}"""
   match obj
 

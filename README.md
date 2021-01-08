@@ -20,18 +20,20 @@ Another speed up comes from not using `StringStream`. Stream has a function disp
 ### Parse speed.
 ```
 name ............................... min time      avg time    std dv  times
-treeform/jsony .................... 10.121 ms     10.809 ms    ±1.208   x100
-planetis-m/eminim ................. 12.006 ms     12.574 ms    ±1.156   x100
-nim std/json ...................... 23.282 ms     34.679 ms    ±7.512   x100
+status-im/nim-json-serialization ... 7.119 ms     14.276 ms    ±2.033   x100
+treeform/jsony ..................... 8.831 ms     15.832 ms    ±2.170   x100
+nim std/json ...................... 24.141 ms     38.741 ms    ±5.417   x100
+planetis-m/eminim ................. 10.974 ms     18.355 ms    ±3.994   x100
 ```
 
 ### Serialize speed.
 ```
 name ............................... min time      avg time    std dv  times
-treeform/jsony ..................... 4.047 ms      4.172 ms    ±0.225   x100
-planetis-m/eminim .................. 7.173 ms      7.324 ms    ±0.253   x100
-disruptek/jason ................... 10.220 ms     11.155 ms    ±0.689   x100
-nim std/json ...................... 11.526 ms     15.181 ms    ±0.857   x100
+status-im/nim-json-serialization ... 2.048 ms      3.302 ms    ±0.788   x100
+treeform/jsony ..................... 2.130 ms      3.578 ms    ±0.681   x100
+planetis-m/eminim .................. 6.087 ms     11.925 ms    ±3.067   x100
+disruptek/jason ................... 10.398 ms     15.784 ms    ±2.418   x100
+nim std/json ...................... 12.376 ms     19.531 ms    ±3.366   x100
 ```
 
 Note: If you find a faster nim json parser or serializer let me know!
@@ -217,3 +219,13 @@ Gives us:
 ```
 "10/13"
 ```
+
+### Static writing with `toStaticJson`.
+
+Some times you have or const json and you want to write it in a static way. There is a special function for that:
+
+```nim
+thing.toStaticJson()
+```
+
+Make sure `thing` is a `static` or a `const` value and you will get a compile time string with your JSON.

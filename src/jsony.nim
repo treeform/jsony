@@ -304,7 +304,8 @@ proc fromJson*[T](s: string): T =
   parseHook(s, i, result)
 
 proc dumpHook*(s: var string, v: bool)
-proc dumpHook*(s: var string, v: SomeNumber)
+proc dumpHook*(s: var string, v: uint|uint8|uint16|uint32|uint64)
+proc dumpHook*(s: var string, v: int|int8|int16|int32|int64)
 proc dumpHook*(s: var string, v: string)
 proc dumpHook*(s: var string, v: char)
 proc dumpHook*(s: var string, v: tuple)
@@ -319,7 +320,36 @@ proc dumpHook*(s: var string, v: bool) =
   else:
     s.add "false"
 
-proc dumpHook*(s: var string, v: SomeNumber) =
+when defined(release):
+  {.push checks: off.}
+
+proc dumpHook*(s: var string, v: uint|uint8|uint16|uint32|uint64) =
+  if v == 0:
+    s.add '0'
+    return
+  var digits: array[20, char]
+  var v = v
+  var p = 0
+  while v != 0:
+    digits[p] = ('0'.ord + v mod 10).char
+    inc p
+    v = v div 10
+  dec p
+  while p >= 0:
+    s.add digits[p]
+    dec p
+
+proc dumpHook*(s: var string, v: int|int8|int16|int32|int64) =
+  if v < 0:
+    s.add '-'
+    dumpHook(s, 0.uint64 - v.uint64)
+  else:
+    dumpHook(s, v.uint64)
+
+when defined(release):
+  {.pop.}
+
+proc dumpHook*(s: var string, v: SomeFloat) =
   s.add $v
 
 proc dumpHook*(s: var string, v: string) =
@@ -335,6 +365,10 @@ proc dumpHook*(s: var string, v: string) =
     else:
       s.add c
   s.add '"'
+
+template dumpKey(s: var string, v: string) =
+  const v2 = v.toJson() & ":"
+  s.add v2
 
 proc dumpHook*(s: var string, v: char) =
   s.add '"'
@@ -386,8 +420,7 @@ proc dumpHook*(s: var string, v: object) =
     for k, e in v.fieldPairs:
       if i > 0:
         s.add ','
-      s.dumpHook(k)
-      s.add ':'
+      s.dumpKey(k)
       s.dumpHook(e)
       inc i
   s.add '}'

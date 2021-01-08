@@ -38,6 +38,10 @@ var treeStr = tree.toJson()
 
 echo genId, " node tree:"
 
+when not defined(gcArc):
+  timeIt "status-im/nim-json-serialization", 100:
+    keep json_serialization.Json.decode(treeStr, Node)
+
 timeIt "treeform/jsony", 100:
   keep jsony.fromJson[Node](treeStr)
 
@@ -51,23 +55,14 @@ else:
 timeIt "planetis-m/eminim", 100:
   keep newStringStream(treeStr).jsonTo(Node)
 
-# timeIt "disruptek/jason", 100:
-#   keep
+echo "serialize:"
+
 when not defined(gcArc):
   timeIt "status-im/nim-json-serialization", 100:
-    keep json_serialization.Json.decode(treeStr, Node)
-
-echo "serialize:"
+    keep json_serialization.Json.encode(tree)
 
 timeIt "treeform/jsony", 100:
   keep tree.toJson()
-
-when defined(packedjson):
-  timeIt "araq/packedjson", 100:
-    keep packedjson.`$`(packedjson.`%`(tree))
-else:
-  timeIt "nim std/json", 100:
-    keep json.`$`(json.`%`(tree))
 
 timeIt "planetis-m/eminim", 100:
   var s = newStringStream()
@@ -78,6 +73,9 @@ timeIt "planetis-m/eminim", 100:
 timeIt "disruptek/jason", 100:
   keep tree.jason.string
 
-when not defined(gcArc):
-  timeIt "status-im/nim-json-serialization", 100:
-    keep json_serialization.Json.encode(tree)
+when defined(packedjson):
+  timeIt "araq/packedjson", 100:
+    keep packedjson.`$`(packedjson.`%`(tree))
+else:
+  timeIt "nim std/json", 100:
+    keep json.`$`(json.`%`(tree))
