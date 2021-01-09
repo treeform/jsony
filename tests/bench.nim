@@ -39,12 +39,12 @@ echo treeStr[0 ..< 100]
 echo genId, " node tree:"
 
 when not defined(gcArc):
-  timeIt "status-im/nim-json-serialization", 1000:
+  timeIt "status-im/nim-json-serialization", 100:
     keep json_serialization.Json.decode(treeStr, Node)
 
   doAssert json_serialization.Json.decode(treeStr, Node).toJson() == treeStr
 
-timeIt "treeform/jsony", 1000:
+timeIt "treeform/jsony", 100:
   keep jsony.fromJson[Node](treeStr)
 
 when defined(packedjson):
