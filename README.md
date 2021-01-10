@@ -1,11 +1,15 @@
 # JSONy - A loose, direct to object json parser and serializer with hooks.
 
+Pure nim module with no other dependencies.
+
 `nimble install jsony`
 
 ```nim
 @[1, 2, 3].toJson() -> "[1,2,3]"
-"[1, 2, 3]".fromJson(seq[int]) -> @[1, 2, 3]
+"[1,2,3]".fromJson(seq[int]) -> @[1, 2, 3]
 ```
+
+## Rational
 
 Real world json is *never what you want*. It might have extra fields that you don't care about. It might have missing fields requiring default values. It might change or grow new fields at any moment. Json might use `camelCase` or `snake_case`. It might use inconsistent naming.
 
