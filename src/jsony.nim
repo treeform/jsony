@@ -1,4 +1,4 @@
-import jsony/objvar, strutils, tables, unicode
+import jsony/objvar, strutils, tables, unicode, json
 
 type JsonError* = object of ValueError
 
@@ -13,6 +13,7 @@ proc parseHook*[T: object|ref object](s: string, i: var int, v: var T)
 proc parseHook*[T](s: string, i: var int, v: var Table[string, T])
 proc parseHook*[T: tuple](s: string, i: var int, v: var T)
 proc parseHook*[T: array](s: string, i: var int, v: var T)
+proc parseHook*(s: string, i: var int, v: var JsonNode)
 
 template error(msg: string, i: int) =
   ## Shortcut to raise an exception.
@@ -334,11 +335,76 @@ proc parseHook*[T](s: string, i: var int, v: var Table[string, T]) =
       break
   eatChar(s, i, '}')
 
+proc parseHook*(s: string, i: var int, v: var JsonNode) =
+  ## Parses a regular json node.
+  eatSpace(s, i)
+  if i < s.len and s[i] == '{':
+    v = newJObject()
+    eatChar(s, i, '{')
+    while i < s.len:
+      eatSpace(s, i)
+      if i < s.len and s[i] == '}':
+        break
+      var k: string
+      parseHook(s, i, k)
+      eatChar(s, i, ':')
+      var e: JsonNode
+      parseHook(s, i, e)
+      v[k] = e
+      eatSpace(s, i)
+      if i < s.len and s[i] == ',':
+        inc i
+    eatChar(s, i, '}')
+  elif i < s.len and s[i] == '[':
+    v = newJArray()
+    eatChar(s, i, '[')
+    while i < s.len:
+      eatSpace(s, i)
+      if i < s.len and s[i] == ']':
+        break
+      var e: JsonNode
+      parseHook(s, i, e)
+      v.add(e)
+      eatSpace(s, i)
+      if i < s.len and s[i] == ',':
+        inc i
+    eatChar(s, i, ']')
+  elif i < s.len and s[i] == '"':
+    var str: string
+    parseHook(s, i, str)
+    v = newJString(str)
+  else:
+    var data = parseSymbol(s, i)
+    if data == "null":
+      v = newJNull()
+    elif data == "true":
+      v = newJBool(true)
+    elif data == "false":
+      v = newJBool(false)
+    elif data.len > 0 and data[0] in {'0'..'9'}:
+      if "." in data:
+        try:
+          v = newJFloat(parseFloat(data))
+        except ValueError:
+          error("Invalid integer.", i)
+      else:
+        try:
+          v = newJInt(parseInt(data))
+        except ValueError:
+          error("Invalid float.", i)
+    else:
+      error("Unexpected.", i)
+
 proc fromJson*[T](s: string, x: typedesc[T]): T =
   ## Takes json and outputs the object it represents.
   ## * Extra json fields are ignored.
   ## * Missing json fields keep their default values.
   ## * `proc newHook(foo: var ...)` Can be used to populate default values.
+  var i = 0
+  s.parseHook(i, result)
+
+proc fromJson*(s: string): JsonNode =
+  ## Takes json parses it into `JsonNode`s.
   var i = 0
   s.parseHook(i, result)
 
@@ -525,6 +591,40 @@ proc dumpHook*(s: var string, v: ref object) =
     s.add "null"
   else:
     s.dumpHook(v[])
+
+proc dumpHook*(s: var string, v: JsonNode) =
+  ## Dumps a regular json node.
+  case v.kind:
+  of JObject:
+    s.add '{'
+    var i = 0
+    for k, e in v.pairs:
+      if i != 0:
+        s.add ","
+      s.dumpHook(k)
+      s.add ':'
+      s.dumpHook(e)
+      inc i
+    s.add '}'
+  of JArray:
+    s.add '['
+    var i = 0
+    for e in v:
+      if i != 0:
+        s.add ","
+      s.dumpHook(e)
+      inc i
+    s.add ']'
+  of JNull:
+    s.add "null"
+  of JInt:
+    s.dumpHook(v.getInt)
+  of JFloat:
+    s.dumpHook(v.getFloat)
+  of JString:
+    s.dumpHook(v.getStr)
+  of JBool:
+    s.dumpHook(v.getBool)
 
 proc toJson*[T](v: T): string =
   dumpHook(result, v)

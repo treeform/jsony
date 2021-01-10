@@ -45,8 +45,8 @@ for i in 0 ..< 10000:
     data = treeStr
     pos = rand(data.len)
     value = rand(255).char
-    # pos = 2284
-    # value = 152.char
+    #pos = 18716
+    #value = 125.char
 
   data[pos] = value
   echo &"{i} {pos} {value.uint8}"
@@ -56,9 +56,22 @@ for i in 0 ..< 10000:
   except JsonError:
     discard
 
-  data = data[0 ..< pos]
+  var data2 = data[0 ..< pos]
   try:
-    let node = data.fromJson(Node)
+    let node = data2.fromJson(Node)
+    doAssert node != nil
+  except JsonError:
+    discard
+
+  # JsonNode
+  try:
+    let node = data.fromJson()
+    doAssert node != nil
+  except JsonError:
+    discard
+
+  try:
+    let node = data2.fromJson()
     doAssert node != nil
   except JsonError:
     discard

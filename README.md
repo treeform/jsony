@@ -222,7 +222,7 @@ Gives us:
 "10/13"
 ```
 
-### Static writing with `toStaticJson`.
+## Static writing with `toStaticJson`.
 
 Some times you have or const json and you want to write it in a static way. There is a special function for that:
 
@@ -232,7 +232,7 @@ thing.toStaticJson()
 
 Make sure `thing` is a `static` or a `const` value and you will get a compile time string with your JSON.
 
-### Full support for case variant objects.
+## Full support for case variant objects.
 
 Case variant objects like this are fully supported:
 
@@ -246,3 +246,16 @@ t=oe RefNode = ref object
 The discriminator do no have to come first, if they do come in the middle this
 library will scan the object, find the discriminator field, then rewind and
 parse the object normally.
+
+
+## Full support for json-in-json.
+
+Some times your json objects could contain arbitrary json structures,
+maybe event user defined, that could only be walked as json nodes. This library allows you to parse json-in-json were you parse some of the structure as real nim objects but leave some parts of it as Json Nodes to be walked later with code:
+
+```nim
+type Entry = object
+  name: string
+  data: JsonNode
+entry.toJson.fromJson(Entry)
+```
