@@ -17,12 +17,12 @@ Currently the Nim standard module first parses or serializes json into JsonNodes
 
 Another speed up comes from not using `StringStream`. Stream has a function dispatch overhead because it has to be able to switch between `StringStream` or `FileStream` at runtime. Jsony skips the overhead and just directly reads or writes to memory buffers.
 
-Another speed up comes from parsing and readings its own numbers directly from memory buffer. This allows it to by pass `string` allocations that `parseInt` or `$` create.
+Another speed up comes from parsing and readings its own numbers directly from memory buffer. This allows it to bypass `string` allocations that `parseInt` or `$` create.
 
 ### Parse speed.
 ```
 name ............................... min time      avg time    std dv  times
-treeform/jsony ..................... 6.311 ms      9.688 ms    ±3.301   x100
+treeform/jsony ..................... 6.724 ms     12.047 ms    ±3.694   x100
 status-im/nim-json-serialization ... 7.119 ms     14.276 ms    ±2.033   x100
 nim std/json ...................... 24.141 ms     38.741 ms    ±5.417   x100
 planetis-m/eminim ................. 10.974 ms     18.355 ms    ±3.994   x100
@@ -43,11 +43,14 @@ Note: If you find a faster nim json parser or serializer let me know!
 ## Can parse or serializer most types:
 
 * numbers and strings
+* seq and arrays
 * objects and ref objects
 * enums
 * tuples
-* seq and arrays
-* tables
+* characters
+* `HashTable`s and `OrderedTable`s
+* `HashSet`s and `OrderedSet`s
+* json nodes
 * and `parseHook()` enables you to parse any type!
 
 ## Not strict.

@@ -1,4 +1,4 @@
-import jsony/objvar, strutils, tables, unicode, json
+import jsony/objvar, strutils, tables, sets, unicode, json
 
 type JsonError* = object of ValueError
 
@@ -7,13 +7,18 @@ const whiteSpace = {' ', '\n', '\t', '\r'}
 when defined(release):
   {.push checks: off.}
 
+type SomeTable*[K, V] = Table[K, V] | OrderedTable[K, V] |
+  TableRef[K, V] | OrderedTableRef[K, V]
+
 proc parseHook*[T](s: string, i: var int, v: var seq[T])
 proc parseHook*[T: enum](s: string, i: var int, v: var T)
 proc parseHook*[T: object|ref object](s: string, i: var int, v: var T)
-proc parseHook*[T](s: string, i: var int, v: var Table[string, T])
+proc parseHook*[T](s: string, i: var int, v: var SomeTable[string, T])
+proc parseHook*[T](s: string, i: var int, v: var SomeSet[T])
 proc parseHook*[T: tuple](s: string, i: var int, v: var T)
 proc parseHook*[T: array](s: string, i: var int, v: var T)
 proc parseHook*(s: string, i: var int, v: var JsonNode)
+proc parseHook*(s: string, i: var int, v: var char)
 
 template error(msg: string, i: int) =
   ## Shortcut to raise an exception.
@@ -146,6 +151,13 @@ proc parseHook*(s: string, i: var int, v: var string) =
       v.add(c)
     inc i
   eatChar(s, i, '"')
+
+proc parseHook*(s: string, i: var int, v: var char) =
+  var str: string
+  s.parseHook(i, str)
+  if str.len != 1:
+    error("String can't fit into a char.", i)
+  v = str[0]
 
 proc parseHook*[T](s: string, i: var int, v: var seq[T]) =
   ## Parse seq.
@@ -316,8 +328,10 @@ proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
     postHook(v)
   eatChar(s, i, '}')
 
-proc parseHook*[T](s: string, i: var int, v: var Table[string, T]) =
+proc parseHook*[T](s: string, i: var int, v: var SomeTable[string, T]) =
   ## Parse an object.
+  when compiles(new(v)):
+    new(v)
   eatChar(s, i, '{')
   while i < s.len:
     eatSpace(s, i)
@@ -334,6 +348,22 @@ proc parseHook*[T](s: string, i: var int, v: var Table[string, T]) =
     else:
       break
   eatChar(s, i, '}')
+
+proc parseHook*[T](s: string, i: var int, v: var SomeSet[T]) =
+  ## Parse HashSet.
+  eatSpace(s, i)
+  eatChar(s, i, '[')
+  while true:
+    eatSpace(s, i)
+    if i < s.len and s[i] == ']':
+      break
+    var e: T
+    parseHook(s, i, e)
+    v.incl(e)
+    eatSpace(s, i)
+    if i < s.len and s[i] == ',':
+      inc i
+  eatChar(s, i, ']')
 
 proc parseHook*(s: string, i: var int, v: var JsonNode) =
   ## Parses a regular json node.
@@ -591,6 +621,16 @@ proc dumpHook*(s: var string, v: ref object) =
     s.add "null"
   else:
     s.dumpHook(v[])
+
+proc dumpHook*[T](s: var string, v: HashSet[T]|OrderedSet[T]) =
+  s.add '['
+  var i = 0
+  for e in v:
+    if i != 0:
+      s.add ','
+    s.dumpHook(e)
+    inc i
+  s.add ']'
 
 proc dumpHook*(s: var string, v: JsonNode) =
   ## Dumps a regular json node.

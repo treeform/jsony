@@ -33,3 +33,17 @@ block:
   doAssert v["a"].color == "red"
   doAssert v["b"].color == "green"
   doAssert v["c"].color == "blue"
+
+block:
+  type Entry = object
+    color: string
+  var s = """{
+    "a": {"color":"red"},
+    "b": {"color":"green"},
+    "c": {"color":"blue"}
+  }"""
+  var v = s.fromJson(OrderedTableRef[string, Entry])
+  doAssert v.len == 3
+  doAssert v["a"].color == "red"
+  doAssert v["b"].color == "green"
+  doAssert v["c"].color == "blue"
