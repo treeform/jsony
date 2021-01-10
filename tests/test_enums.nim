@@ -5,13 +5,13 @@ type Color = enum
   cBlue
   cGreen
 
-doAssert fromJson[Color]("0") == cRed
-doAssert fromJson[Color]("1") == cBlue
-doAssert fromJson[Color]("2") == cGreen
+doAssert "0".fromJson(Color) == cRed
+doAssert "1".fromJson(Color) == cBlue
+doAssert "2".fromJson(Color) == cGreen
 
-doAssert fromJson[Color](""" "cRed" """) == cRed
-doAssert fromJson[Color](""" "cBlue" """) == cBlue
-doAssert fromJson[Color](""" "cGreen" """) == cGreen
+doAssert """ "cRed" """.fromJson(Color) == cRed
+doAssert """ "cBlue" """.fromJson(Color) == cBlue
+doAssert """ "cGreen" """.fromJson(Color) == cGreen
 
 type Color2 = enum
   c2Red
@@ -25,6 +25,6 @@ proc enumHook(s: string, v: var Color2) =
   of "GREEN": c2Green
   else: c2Red
 
-doAssert fromJson[Color2](""" "RED" """) == c2Red
-doAssert fromJson[Color2](""" "BLUE" """) == c2Blue
-doAssert fromJson[Color2](""" "GREEN" """) == c2Green
+doAssert """ "RED" """.fromJson(Color2) == c2Red
+doAssert """ "BLUE" """.fromJson(Color2) == c2Blue
+doAssert """ "GREEN" """.fromJson(Color2) == c2Green

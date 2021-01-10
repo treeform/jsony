@@ -4,7 +4,7 @@ block:
   type Entry1 = object
     color: string
   var s = "{}"
-  var v = fromJson[Entry1](s)
+  var v = s.fromJson(Entry1)
   doAssert v.color == ""
 
 block:
@@ -13,7 +13,7 @@ block:
     a: string
     ratio: float32
   var s = """{"field":"is here", "a":"b", "ratio":22.5}"""
-  var v = fromJson[Foo2](s)
+  var v = s.fromJson(Foo2)
   doAssert v.field == "is here"
   doAssert v.a == "b"
   doAssert v.ratio == 22.5
@@ -25,7 +25,7 @@ type
     id: string
     bar: Bar3
 var s = """{"id":"123", "bar":{"name":"abc"}}"""
-var v = fromJson[Foo3](s)
+var v = s.fromJson(Foo3)
 doAssert v.id == "123"
 doAssert v.bar.name == "abc"
 
@@ -46,7 +46,7 @@ proc newHook(foo: var Foo4) =
 
 block:
   var s = """{"id":"123", "bar":{"name":"abc", "visible": "yes"}}"""
-  var v = fromJson[Foo4](s)
+  var v = s.fromJson(Foo4)
   doAssert v.id == "123"
   doAssert v.visible == "yes"
   doAssert v.bar.name == "abc"
@@ -62,19 +62,19 @@ proc newHook(foo: var Foo5) =
 
 block:
   var s = """{"id":"123", "visible": "yes"}"""
-  var v = fromJson[Foo5](s)
+  var v = s.fromJson(Foo5)
   doAssert v.id == "123"
   doAssert v.visible == "yes"
 
 block:
   var s = """{"id":"123"}"""
-  var v = fromJson[Foo5](s)
+  var v = s.fromJson(Foo5)
   doAssert v.id == "123"
   doAssert v.visible == "yes"
 
 block:
   var s = """{"id":"123", "visible": "no"}"""
-  var v = fromJson[Foo5](s)
+  var v = s.fromJson(Foo5)
   doAssert v.id == "123"
   doAssert v.visible == "no"
 
@@ -82,7 +82,7 @@ block:
   type Entry2 = object
     color: string
   var s = """[{}, {"color":"red"}]"""
-  var v = fromJson[seq[Entry2]](s)
+  var v = s.fromJson(seq[Entry2])
   doAssert v.len == 2
   doAssert v[0].color == ""
   doAssert v[1].color == "red"
@@ -92,7 +92,7 @@ block:
   type Entry3 = object
     color: string
   var s = """[{"id":123}, {"color":"red", "id":123}, {"ex":[{"color":"red"}]}]"""
-  var v = fromJson[seq[Entry3]](s)
+  var v = s.fromJson(seq[Entry3])
   doAssert v.len == 3
   doAssert v[0].color == ""
   doAssert v[1].color == "red"
@@ -103,10 +103,10 @@ block:
   type Entry4 = object
     colorBlend: string
 
-  var v = fromJson[Entry4]("""{"colorBlend":"red"}""")
+  var v = """{"colorBlend":"red"}""".fromJson(Entry4)
   doAssert v.colorBlend == "red"
 
-  v = fromJson[Entry4]("""{"color_blend":"red"}""")
+  v = """{"color_blend":"red"}""".fromJson(Entry4)
   doAssert v.colorBlend == "red"
 
 proc snakeCase(s: string): string =
@@ -133,14 +133,14 @@ block:
   type Entry5 = object
     color: string
   var s = "null"
-  var v = fromJson[Entry5](s)
+  var v = s.fromJson(Entry5)
   doAssert v.color == ""
 
 block:
   type Entry6 = ref object
     color: string
   var s = "null"
-  var v = fromJson[Entry6](s)
+  var v = s.fromJson(Entry6)
   doAssert v == nil
 
 type Node = ref object
@@ -150,7 +150,7 @@ proc renameHook(v: var Node, fieldName: var string) =
   if fieldName == "type":
     fieldName = "kind"
 
-var node = fromJson[Node]("""{"type":"root"}""")
+var node = """{"type":"root"}""".fromJson(Node)
 doAssert node.kind == "root"
 
 type Sizer = object
@@ -160,6 +160,41 @@ type Sizer = object
 proc postHook(v: var Sizer) =
   v.originalSize = v.size
 
-var sizer = fromJson[Sizer]("""{"size":10}""")
+var sizer = """{"size":10}""".fromJson(Sizer)
 doAssert sizer.size == 10
 doAssert sizer.originalSize == 10
+
+# block:
+
+#   type
+#     NodeNumKind = enum  # the different node types
+#       nkInt,          # a leaf with an integer value
+#       nkFloat,        # a leaf with a float value
+#     RefNode = ref object
+#       active: bool
+#       case kind: NodeNumKind  # the ``kind`` field is the discriminator
+#       of nkInt: intVal: int
+#       of nkFloat: floatVal: float
+#     ValueNode = object
+#       active: bool
+#       case kind: NodeNumKind  # the ``kind`` field is the discriminator
+#       of nkInt: intVal: int
+#       of nkFloat: floatVal: float
+
+#   block:
+#     var nodeNum = RefNode(kind: nkFloat, active: true, floatVal: 3.14)
+#     var nodeNum2 = RefNode(kind: nkInt, active: false, intVal: 42)
+
+#     doAssert nodeNum.toJson.fromJson(type(nodeNum)).floatVal == nodeNum.floatVal
+#     doAssert nodeNum2.toJson.fromJson(type(nodeNum2)).intVal == nodeNum2.intVal
+#     doAssert nodeNum.toJson.fromJson(type(nodeNum)).active == nodeNum.active
+#     doAssert nodeNum2.toJson.fromJson(type(nodeNum2)).active == nodeNum2.active
+
+#   block:
+#     var nodeNum = ValueNode(kind: nkFloat, active: true, floatVal: 3.14)
+#     var nodeNum2 = ValueNode(kind: nkInt, active: false, intVal: 42)
+
+#     doAssert nodeNum.toJson.fromJson(type(nodeNum)).floatVal == nodeNum.floatVal
+#     doAssert nodeNum2.toJson.fromJson(type(nodeNum2)).intVal == nodeNum2.intVal
+#     doAssert nodeNum.toJson.fromJson(type(nodeNum)).active == nodeNum.active
+#     doAssert nodeNum2.toJson.fromJson(type(nodeNum2)).active == nodeNum2.active

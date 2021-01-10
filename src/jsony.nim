@@ -1,8 +1,11 @@
 import macros, strutils, tables, unicode
 
-type JsonError = object of ValueError
+type JsonError* = object of ValueError
 
 const whiteSpace = {' ', '\n', '\t', '\r'}
+
+when defined(release):
+  {.push checks: off.}
 
 proc parseHook*[T](s: string, i: var int, v: var seq[T])
 proc parseHook*[T: enum](s: string, i: var int, v: var T)
@@ -61,10 +64,10 @@ proc parseHook*(s: string, i: var int, v: var bool) =
   else:
     # Its faster to do char by char scan:
     eatSpace(s, i)
-    if i + 3 < s.len and s[i+0] == 't' or s[i+1] == 'r' or s[i+2] == 'u' or s[i+3] == 'e':
+    if i + 3 < s.len and s[i+0] == 't' and s[i+1] == 'r' and s[i+2] == 'u' and s[i+3] == 'e':
       i += 4
       v = true
-    elif i + 4 < s.len and s[i+0] == 'f' or s[i+1] == 'a' or s[i+2] == 'l' or s[i+3] == 's' or s[i+4] == 'e':
+    elif i + 4 < s.len and s[i+0] == 'f' and s[i+1] == 'a' and s[i+2] == 'l' and s[i+3] == 's' and s[i+4] == 'e':
       i += 5
       v = false
     else:
@@ -76,10 +79,14 @@ proc parseHook*(s: string, i: var int, v: var SomeUnsignedInt) =
     v = type(v)(parseInt(parseSymbol(s, i)))
   else:
     eatSpace(s, i)
-    var v2: uint64 = 0
+    var
+      v2: uint64 = 0
+      startI = i
     while i < s.len and s[i] in {'0'..'9'}:
       v2 = v2 * 10 + (s[i].ord - '0'.ord).uint64
       inc i
+    if startI == i:
+      error("Number expected.", i)
     v = type(v)(v2)
 
 proc parseHook*(s: string, i: var int, v: var SomeSignedInt) =
@@ -88,7 +95,7 @@ proc parseHook*(s: string, i: var int, v: var SomeSignedInt) =
     v = type(v)(parseInt(parseSymbol(s, i)))
   else:
     eatSpace(s, i)
-    if s[i] == '-':
+    if i < s.len and s[i] == '-':
       var v2: uint64
       inc i
       parseHook(s, i, v2)
@@ -96,7 +103,10 @@ proc parseHook*(s: string, i: var int, v: var SomeSignedInt) =
     else:
       var v2: uint64
       parseHook(s, i, v2)
-      v = type(v)(v2)
+      try:
+        v = type(v)(v2)
+      except:
+        error("Number type to small to contain the number.", i)
 
 proc parseHook*(s: string, i: var int, v: var SomeFloat) =
   ## Will parse float32 and float64.
@@ -141,13 +151,13 @@ proc parseHook*[T](s: string, i: var int, v: var seq[T]) =
   eatChar(s, i, '[')
   while i < s.len:
     eatSpace(s, i)
-    if s[i] == ']':
+    if i < s.len and s[i] == ']':
       break
     var element: T
     parseHook(s, i, element)
     v.add(element)
     eatSpace(s, i)
-    if s[i] == ',':
+    if i < s.len and s[i] == ',':
       inc i
     else:
       break
@@ -161,7 +171,7 @@ proc parseHook*[T: tuple](s: string, i: var int, v: var T) =
     eatSpace(s, i)
     parseHook(s, i, value)
     eatSpace(s, i)
-    if s[i] == ',':
+    if i < s.len and s[i] == ',':
       inc i
   eatChar(s, i, ']')
 
@@ -173,38 +183,38 @@ proc parseHook*[T: array](s: string, i: var int, v: var T) =
     eatSpace(s, i)
     parseHook(s, i, value)
     eatSpace(s, i)
-    if s[i] == ',':
+    if i < s.len and s[i] == ',':
       inc i
   eatChar(s, i, ']')
 
 proc skipValue(s: string, i: var int) =
   ## Used to skip values of extra fields.
   eatSpace(s, i)
-  if s[i] == '{':
+  if i < s.len and s[i] == '{':
     eatChar(s, i, '{')
     while i < s.len:
       eatSpace(s, i)
-      if s[i] == '}':
+      if i < s.len and s[i] == '}':
         break
       skipValue(s, i)
       eatChar(s, i, ':')
       skipValue(s, i)
       eatSpace(s, i)
-      if s[i] == ',':
+      if i < s.len and s[i] == ',':
         inc i
     eatChar(s, i, '}')
-  elif s[i] == '[':
+  elif i < s.len and s[i] == '[':
     eatChar(s, i, '[')
     while i < s.len:
       eatSpace(s, i)
-      if s[i] == ']':
+      if i < s.len and s[i] == ']':
         break
       skipValue(s, i)
       eatSpace(s, i)
-      if s[i] == ',':
+      if i < s.len and s[i] == ',':
         inc i
     eatChar(s, i, ']')
-  elif s[i] == '"':
+  elif i < s.len and s[i] == '"':
     var str: string
     parseHook(s, i, str)
   else:
@@ -264,25 +274,25 @@ macro fieldsMacro(v: typed, key: string) =
 proc parseHook*[T: enum](s: string, i: var int, v: var T) =
   eatSpace(s, i)
   var strV: string
-  if s[i] == '"':
+  if i < s.len and s[i] == '"':
     parseHook(s, i, strV)
     when compiles(enumHook(strV, v)):
       enumHook(strV, v)
     else:
-      v = parseEnum[T](strV)
+      try:
+        v = parseEnum[T](strV)
+      except:
+        error("Can't parse enum.", i)
   else:
-    strV = parseSymbol(s, i)
-    v = T(parseInt(strV))
+    try:
+      strV = parseSymbol(s, i)
+      v = T(parseInt(strV))
+    except:
+      error("Can't parse enum.", i)
 
 proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
   ## Parse an object.
   eatSpace(s, i)
-  # if s[i] == 'n':
-  #   let what = parseSymbol(s, i)
-  #   if what == "null":
-  #     return
-  #   else:
-  #     error("Expected {} or null.", i)
   if i + 3 < s.len and s[i+0] == 'n' and s[i+1] == 'u' and s[i+2] == 'l' and s[i+3] == 'l':
     i += 4
     return
@@ -293,7 +303,7 @@ proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
     new(v)
   while i < s.len:
     eatSpace(s, i)
-    if s[i] == '}':
+    if i < s.len and s[i] == '}':
       break
     var key: string
     parseHook(s, i, key)
@@ -302,7 +312,7 @@ proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
       renameHook(v, key)
     fieldsMacro(v, key)
     eatSpace(s, i)
-    if s[i] == ',':
+    if i < s.len and s[i] == ',':
       inc i
     else:
       break
@@ -315,7 +325,7 @@ proc parseHook*[T](s: string, i: var int, v: var Table[string, T]) =
   eatChar(s, i, '{')
   while i < s.len:
     eatSpace(s, i)
-    if s[i] == '}':
+    if i < s.len and s[i] == '}':
       break
     var key: string
     parseHook(s, i, key)
@@ -323,20 +333,28 @@ proc parseHook*[T](s: string, i: var int, v: var Table[string, T]) =
     var element: T
     parseHook(s, i, element)
     v[key] = element
-    if s[i] == ',':
+    if i < s.len and s[i] == ',':
       inc i
     else:
       break
   eatChar(s, i, '}')
 
-proc fromJson*[T](s: string): T =
+# proc fromJson*[T](s: string): T =
+#   ## Takes json and outputs the object it represents.
+#   ## * Extra json fields are ignored.
+#   ## * Missing json fields keep their default values.
+#   ## * `proc newHook(foo: var ...)` Can be used to populate default values.
+
+#   var i = 0
+#   parseHook(s, i, result)
+
+proc fromJson*[T](s: string, x: typedesc[T]): T =
   ## Takes json and outputs the object it represents.
   ## * Extra json fields are ignored.
   ## * Missing json fields keep their default values.
   ## * `proc newHook(foo: var ...)` Can be used to populate default values.
-
   var i = 0
-  parseHook(s, i, result)
+  s.parseHook(i, result)
 
 proc dumpHook*(s: var string, v: bool)
 proc dumpHook*(s: var string, v: uint|uint8|uint16|uint32|uint64)
@@ -344,6 +362,7 @@ proc dumpHook*(s: var string, v: int|int8|int16|int32|int64)
 proc dumpHook*(s: var string, v: string)
 proc dumpHook*(s: var string, v: char)
 proc dumpHook*(s: var string, v: tuple)
+proc dumpHook*(s: var string, v: enum)
 proc dumpHook*[N, T](s: var string, v: array[N, T])
 proc dumpHook*[T](s: var string, v: seq[T])
 proc dumpHook*(s: var string, v: object)
@@ -354,9 +373,6 @@ proc dumpHook*(s: var string, v: bool) =
     s.add "true"
   else:
     s.add "false"
-
-when defined(release):
-  {.push checks: off.}
 
 const lookup = block:
   ## Generate 00, 01, 02 ... 99 pairs.
@@ -407,9 +423,6 @@ proc dumpHook*(s: var string, v: int|int8|int16|int32|int64) =
     dumpHook(s, 0.uint64 - v.uint64)
   else:
     dumpHook(s, v.uint64)
-
-when defined(release):
-  {.pop.}
 
 proc dumpHook*(s: var string, v: SomeFloat) =
   s.add $v
@@ -478,6 +491,9 @@ proc dumpHook*(s: var string, v: tuple) =
     inc i
   s.add ']'
 
+proc dumpHook*(s: var string, v: enum) =
+  s.dumpHook($v)
+
 proc dumpHook*[N, T](s: var string, v: array[N, T]) =
   s.add '['
   var i = 0
@@ -541,3 +557,7 @@ template toStaticJson*(v: untyped): static[string] =
 #   ## This will turn v into json at compile time and return the json string.
 #   const s = v.toJsonDynamic()
 #   s
+
+
+when defined(release):
+  {.pop.}

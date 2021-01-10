@@ -38,14 +38,15 @@ var treeStr = tree.toJson()
 echo treeStr[0 ..< 100]
 echo genId, " node tree:"
 
+timeIt "treeform/jsony", 100:
+  keep treeStr.fromJson(Node)
+
 when not defined(gcArc):
   timeIt "status-im/nim-json-serialization", 100:
     keep json_serialization.Json.decode(treeStr, Node)
 
-  doAssert json_serialization.Json.decode(treeStr, Node).toJson() == treeStr
-
-timeIt "treeform/jsony", 100:
-  keep jsony.fromJson[Node](treeStr)
+timeIt "planetis-m/eminim", 100:
+  keep newStringStream(treeStr).jsonTo(Node)
 
 when defined(packedjson):
   timeIt "araq/packedjson", 100:
@@ -53,9 +54,6 @@ when defined(packedjson):
 else:
   timeIt "nim std/json", 100:
     keep json.to(json.parseJson(treeStr), Node)
-
-timeIt "planetis-m/eminim", 100:
-  keep newStringStream(treeStr).jsonTo(Node)
 
 echo "serialize:"
 

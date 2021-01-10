@@ -15,7 +15,7 @@ block:
   var jsonStr = "\"hello there how are you?\""
   timeIt "treeform/jsony", 100:
     for i in 0 ..< 1000:
-      keep fromJson[string](jsonStr)
+      keep jsonStr.fromJson(string)
 
   when not defined(gcArc):
     timeIt "status-im/nim-json-serialization", 100:
@@ -34,7 +34,7 @@ block:
   var jsonStr = node.toJson()
   timeIt "treeform/jsony", 100:
     for i in 0 ..< 1000:
-      keep fromJson[Node](jsonStr)
+      keep jsonStr.fromJson(Node)
 
   when not defined(gcArc):
     timeIt "status-im/nim-json-serialization", 100:
@@ -54,7 +54,7 @@ block:
     seqObj.add(Node())
   var jsonStr = seqObj.toJson()
   timeIt "treeform/jsony", 100:
-    keep fromJson[seq[Node]](jsonStr)
+    keep jsonStr.fromJson(seq[Node])
 
   when not defined(gcArc):
     timeIt "status-im/nim-json-serialization", 100:
