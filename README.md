@@ -9,8 +9,6 @@ Pure nim module with no other dependencies.
 "[1,2,3]".fromJson(seq[int]) -> @[1, 2, 3]
 ```
 
-## Rational
-
 Real world json is *never what you want*. It might have extra fields that you don't care about. It might have missing fields requiring default values. It might change or grow new fields at any moment. Json might use `camelCase` or `snake_case`. It might use inconsistent naming.
 
 With this library you can use json your way, from the mess you get to the objects you want.
@@ -209,9 +207,13 @@ Gives us:
 
 ### `proc dumpHook()` Can be used to serializer into custom representation.
 
-Just like reading custom data types you can also write faster data types with `dumpHook`. Using `Fraction` from the above example:
+Just like reading custom data types you can also write data types with `dumpHook`.
 
 ```nim
+type Fraction = object
+  numerator: int
+  denominator: int
+
 proc dumpHook(s: var string, v: Fraction) =
   ## Output fraction type as a string "x/y".
   s.add '"'
@@ -244,16 +246,13 @@ Make sure `thing` is a `static` or a `const` value and you will get a compile ti
 Case variant objects like this are fully supported:
 
 ```nim
-t=oe RefNode = ref object
+type RefNode = ref object
   case kind: NodeNumKind  # The ``kind`` field is the discriminator.
   of nkInt: intVal: int
   of nkFloat: floatVal: float
 ```
 
-The discriminator do no have to come first, if they do come in the middle this
-library will scan the object, find the discriminator field, then rewind and
-parse the object normally.
-
+The discriminator do no have to come first, if they do come in the middle this library will scan the object, find the discriminator field, then rewind and parse the object normally.
 
 ## Full support for json-in-json.
 
@@ -264,5 +263,17 @@ maybe event user defined, that could only be walked as json nodes. This library 
 type Entry = object
   name: string
   data: JsonNode
-entry.toJson.fromJson(Entry)
+
+"""
+{
+  "name":"json-in-json",
+  "data":{
+    "random-data":"here",
+    "number":123,
+    "number2":123.456,
+    "array":[1,2,3],
+    "active":true,
+    "null":null
+  }
+}""".fromJson(Entry)
 ```
