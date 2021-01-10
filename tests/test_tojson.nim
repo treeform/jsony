@@ -39,7 +39,6 @@ block:
       b: float
       c: string
   var obj = Obj()
-  echo obj.toJson()
   doAssert obj.toJson() == """{"a":0,"b":0.0,"c":""}"""
   match obj
 
@@ -79,3 +78,31 @@ proc dumpHook(s: var string, v: Fraction) =
 
 var f = Fraction(numerator: 10, denominator: 13)
 doAssert f.toJson() == "\"10/13\""
+
+block:
+  type
+    NodeNumKind = enum  # the different node types
+      nkInt,          # a leaf with an integer value
+      nkFloat,        # a leaf with a float value
+    RefNode = ref object
+      active: bool
+      case kind: NodeNumKind  # the ``kind`` field is the discriminator
+      of nkInt: intVal: int
+      of nkFloat: floatVal: float
+    ValueNode = object
+      active: bool
+      case kind: NodeNumKind  # the ``kind`` field is the discriminator
+      of nkInt: intVal: int
+      of nkFloat: floatVal: float
+
+  var
+    refNode1 = RefNode(kind: nkFloat, active: true, floatVal: 3.14)
+    refNode2 = RefNode(kind: nkInt, active: false, intVal: 42)
+
+    valueNode1 = ValueNode(kind: nkFloat, active: true, floatVal: 3.14)
+    valueNode2 = ValueNode(kind: nkInt, active: false, intVal: 42)
+
+  doAssert refNode1.toJson() == """{"active":true,"kind":"nkFloat","floatVal":3.14}"""
+  doAssert refNode2.toJson() == """{"active":false,"kind":"nkInt","intVal":42}"""
+  doAssert valueNode1.toJson() == """{"active":true,"kind":"nkFloat","floatVal":3.14}"""
+  doAssert valueNode2.toJson() == """{"active":false,"kind":"nkInt","intVal":42}"""

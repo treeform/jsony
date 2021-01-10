@@ -231,3 +231,18 @@ thing.toStaticJson()
 ```
 
 Make sure `thing` is a `static` or a `const` value and you will get a compile time string with your JSON.
+
+### Full support for case variant objects.
+
+Case variant objects like this are fully supported:
+
+```nim
+t=oe RefNode = ref object
+  case kind: NodeNumKind  # The ``kind`` field is the discriminator.
+  of nkInt: intVal: int
+  of nkFloat: floatVal: float
+```
+
+The discriminator do no have to come first, if they do come in the middle this
+library will scan the object, find the discriminator field, then rewind and
+parse the object normally.

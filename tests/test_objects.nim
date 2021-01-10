@@ -164,37 +164,67 @@ var sizer = """{"size":10}""".fromJson(Sizer)
 doAssert sizer.size == 10
 doAssert sizer.originalSize == 10
 
-# block:
+block:
 
-#   type
-#     NodeNumKind = enum  # the different node types
-#       nkInt,          # a leaf with an integer value
-#       nkFloat,        # a leaf with a float value
-#     RefNode = ref object
-#       active: bool
-#       case kind: NodeNumKind  # the ``kind`` field is the discriminator
-#       of nkInt: intVal: int
-#       of nkFloat: floatVal: float
-#     ValueNode = object
-#       active: bool
-#       case kind: NodeNumKind  # the ``kind`` field is the discriminator
-#       of nkInt: intVal: int
-#       of nkFloat: floatVal: float
+  type
+    NodeNumKind = enum  # the different node types
+      nkInt,          # a leaf with an integer value
+      nkFloat,        # a leaf with a float value
+    RefNode = ref object
+      active: bool
+      case kind: NodeNumKind  # the ``kind`` field is the discriminator
+      of nkInt: intVal: int
+      of nkFloat: floatVal: float
+    ValueNode = object
+      active: bool
+      case kind: NodeNumKind  # the ``kind`` field is the discriminator
+      of nkInt: intVal: int
+      of nkFloat: floatVal: float
 
-#   block:
-#     var nodeNum = RefNode(kind: nkFloat, active: true, floatVal: 3.14)
-#     var nodeNum2 = RefNode(kind: nkInt, active: false, intVal: 42)
+  block:
+    var nodeNum = RefNode(kind: nkFloat, active: true, floatVal: 3.14)
+    var nodeNum2 = RefNode(kind: nkInt, active: false, intVal: 42)
+    doAssert nodeNum.toJson.fromJson(type(nodeNum)).floatVal == nodeNum.floatVal
+    doAssert nodeNum2.toJson.fromJson(type(nodeNum2)).intVal == nodeNum2.intVal
+    doAssert nodeNum.toJson.fromJson(type(nodeNum)).active == nodeNum.active
+    doAssert nodeNum2.toJson.fromJson(type(nodeNum2)).active == nodeNum2.active
 
-#     doAssert nodeNum.toJson.fromJson(type(nodeNum)).floatVal == nodeNum.floatVal
-#     doAssert nodeNum2.toJson.fromJson(type(nodeNum2)).intVal == nodeNum2.intVal
-#     doAssert nodeNum.toJson.fromJson(type(nodeNum)).active == nodeNum.active
-#     doAssert nodeNum2.toJson.fromJson(type(nodeNum2)).active == nodeNum2.active
+  block:
+    # Test discriminator Field Name not being first.
+    let
+      a = """{"active":true,"kind":"nkFloat","floatVal":3.14}""".fromJson(RefNode)
+      b = """{"floatVal":3.14,"active":true,"kind":"nkFloat"}""".fromJson(RefNode)
+      c = """{"kind":"nkFloat","floatVal":3.14,"active":true}""".fromJson(RefNode)
+    doAssert a.kind == nkFloat
+    doAssert b.kind == nkFloat
+    doAssert c.kind == nkFloat
 
-#   block:
-#     var nodeNum = ValueNode(kind: nkFloat, active: true, floatVal: 3.14)
-#     var nodeNum2 = ValueNode(kind: nkInt, active: false, intVal: 42)
+  block:
+    # Test discriminator field name not being there.
+    doAssertRaises JsonError:
+      let
+        a = """{"active":true,"floatVal":3.14}""".fromJson(RefNode)
 
-#     doAssert nodeNum.toJson.fromJson(type(nodeNum)).floatVal == nodeNum.floatVal
-#     doAssert nodeNum2.toJson.fromJson(type(nodeNum2)).intVal == nodeNum2.intVal
-#     doAssert nodeNum.toJson.fromJson(type(nodeNum)).active == nodeNum.active
-#     doAssert nodeNum2.toJson.fromJson(type(nodeNum2)).active == nodeNum2.active
+  block:
+    var nodeNum = ValueNode(kind: nkFloat, active: true, floatVal: 3.14)
+    var nodeNum2 = ValueNode(kind: nkInt, active: false, intVal: 42)
+    doAssert nodeNum.toJson.fromJson(type(nodeNum)).floatVal == nodeNum.floatVal
+    doAssert nodeNum2.toJson.fromJson(type(nodeNum2)).intVal == nodeNum2.intVal
+    doAssert nodeNum.toJson.fromJson(type(nodeNum)).active == nodeNum.active
+    doAssert nodeNum2.toJson.fromJson(type(nodeNum2)).active == nodeNum2.active
+
+  block:
+    # Test discriminator Field Name not being first.
+    let
+      a = """{"active":true,"kind":"nkFloat","floatVal":3.14}""".fromJson(ValueNode)
+      b = """{"floatVal":3.14,"active":true,"kind":"nkFloat"}""".fromJson(ValueNode)
+      c = """{"kind":"nkFloat","floatVal":3.14,"active":true}""".fromJson(ValueNode)
+    doAssert a.kind == nkFloat
+    doAssert b.kind == nkFloat
+    doAssert c.kind == nkFloat
+
+  block:
+    # Test discriminator field name not being there.
+    doAssertRaises JsonError:
+      let
+        a = """{"active":true,"floatVal":3.14}""".fromJson(ValueNode)

@@ -1,4 +1,4 @@
-import macros, strutils, tables, unicode
+import jsony/objvar, strutils, tables, unicode
 
 type JsonError* = object of ValueError
 
@@ -220,10 +220,7 @@ proc skipValue(s: string, i: var int) =
   else:
     discard parseSymbol(s, i)
 
-proc camelCase(s: string): string =
-  return s
-
-proc snakeCase(s: string): string =
+proc snakeCaseDynamic(s: string): string =
   if s.len == 0:
     return
   var prevCap = false
@@ -237,39 +234,9 @@ proc snakeCase(s: string): string =
       prevCap = false
       result.add c
 
-macro fieldsMacro(v: typed, key: string) =
-  ## Crates a parser for object fields.
-  result = nnkCaseStmt.newTree(ident"key")
-  # Get implementation of v's type.
-  var impl = getTypeImpl(v)
-  # Walk refs and pointers to the real type.
-  while impl.kind in {nnkRefTy, nnkPtrTy}:
-    impl = getTypeImpl(impl[0])
-  # For each field in the type:
-  var used: seq[string]
-  for f in impl[2]:
-    # Get fields name and type information.
-    let fieldName = f[0]
-    let filedNameStr = fieldName.strVal()
-    let filedType = f[1]
-    # Output a name/type checker for it:
-    for fn in [camelCase, snakeCase]:
-      let caseName = fn(filedNameStr)
-      if caseName in used:
-        continue
-      used.add(caseName)
-      let ofClause = nnkOfBranch.newTree(newLit(caseName))
-      let body = quote:
-        var value: `filedType`
-        parseHook(s, i, value)
-        v.`fieldName` = value
-      ofClause.add(body)
-      result.add(ofClause)
-  let ofElseClause = nnkElse.newTree()
-  let body = quote:
-    skipValue(s, i)
-  ofElseClause.add(body)
-  result.add(ofElseClause)
+template snakeCase(s: string): string =
+  const k = snakeCaseDynamic(s)
+  k
 
 proc parseHook*[T: enum](s: string, i: var int, v: var T) =
   eatSpace(s, i)
@@ -291,16 +258,37 @@ proc parseHook*[T: enum](s: string, i: var int, v: var T) =
       error("Can't parse enum.", i)
 
 proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
-  ## Parse an object.
+  ## Parse an object or ref object.
   eatSpace(s, i)
   if i + 3 < s.len and s[i+0] == 'n' and s[i+1] == 'u' and s[i+2] == 'l' and s[i+3] == 'l':
     i += 4
     return
   eatChar(s, i, '{')
-  when compiles(newHook(v)):
-    newHook(v)
-  elif compiles(new(v)):
-    new(v)
+  when not v.isObjectVariant:
+    when compiles(newHook(v)):
+      newHook(v)
+    elif compiles(new(v)):
+      new(v)
+  else:
+    # Look for the discriminatorFieldName
+    eatSpace(s, i)
+    var saveI = i
+    while i < s.len:
+      var key: string
+      parseHook(s, i, key)
+      eatChar(s, i, ':')
+      if key == v.discriminatorFieldName:
+        var discriminator: type(v.discriminatorField)
+        parseHook(s, i, discriminator)
+        new(v, discriminator)
+        when compiles(newHook(v)):
+          newHook(v)
+        break
+      skipValue(s, i)
+      if i < s.len and s[i] == '}':
+        error("No discriminator field.", i)
+      eatChar(s, i, ',')
+    i = saveI
   while i < s.len:
     eatSpace(s, i)
     if i < s.len and s[i] == '}':
@@ -310,7 +298,14 @@ proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
     eatChar(s, i, ':')
     when compiles(renameHook(v, key)):
       renameHook(v, key)
-    fieldsMacro(v, key)
+    block all:
+      for k, v in v.fieldPairs:
+        if k == key or snakeCase(k) == key:
+          var v2: type(v)
+          parseHook(s, i, v2)
+          v = v2
+          break all
+      skipValue(s, i)
     eatSpace(s, i)
     if i < s.len and s[i] == ',':
       inc i
@@ -338,15 +333,6 @@ proc parseHook*[T](s: string, i: var int, v: var Table[string, T]) =
     else:
       break
   eatChar(s, i, '}')
-
-# proc fromJson*[T](s: string): T =
-#   ## Takes json and outputs the object it represents.
-#   ## * Extra json fields are ignored.
-#   ## * Missing json fields keep their default values.
-#   ## * `proc newHook(foo: var ...)` Can be used to populate default values.
-
-#   var i = 0
-#   parseHook(s, i, result)
 
 proc fromJson*[T](s: string, x: typedesc[T]): T =
   ## Takes json and outputs the object it represents.
