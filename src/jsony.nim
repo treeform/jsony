@@ -1,4 +1,4 @@
-import jsony/objvar, strutils, tables, sets, unicode, json
+import jsony/objvar, strutils, tables, sets, unicode, json, options
 
 type JsonError* = object of ValueError
 
@@ -328,6 +328,15 @@ proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
     postHook(v)
   eatChar(s, i, '}')
 
+proc parseHook*[T](s: string, i: var int, v: var Option[T]) =
+  ## Parse an Option.
+  if i + 3 < s.len and s[i+0] == 'n' and s[i+1] == 'u' and s[i+2] == 'l' and s[i+3] == 'l':
+    i += 4
+    return
+  var e: T
+  parseHook(s, i, e)
+  v = some(e)
+
 proc parseHook*[T](s: string, i: var int, v: var SomeTable[string, T]) =
   ## Parse an object.
   when compiles(new(v)):
@@ -590,6 +599,12 @@ proc dumpHook*[T](s: var string, v: seq[T]) =
       s.add ','
     s.dumpHook(e)
   s.add ']'
+
+proc dumpHook*[T](s: var string, v: Option[T]) =
+  if v.isNone:
+    s.add "null"
+  else:
+    s.dumpHook(v.get())
 
 proc dumpHook*(s: var string, v: object) =
   s.add '{'

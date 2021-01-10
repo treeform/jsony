@@ -47,6 +47,7 @@ Note: If you find a faster nim json parser or serializer let me know!
 * numbers and strings
 * seq and arrays
 * objects and ref objects
+* options
 * enums
 * tuples
 * characters
