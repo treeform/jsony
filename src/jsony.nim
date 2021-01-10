@@ -465,9 +465,6 @@ const lookup = block:
     s.add($i)
   s
 
-template grow(s: var string, amount: int) =
-  s.setLen(s.len + amount)
-
 proc dumpHook*(s: var string, v: uint|uint8|uint16|uint32|uint64) =
   when nimvm:
     s.add $v
@@ -492,7 +489,7 @@ proc dumpHook*(s: var string, v: uint|uint8|uint16|uint32|uint64) =
     var at = s.len
     if digits[p-1] == '0':
       dec p
-    s.grow(p)
+    s.setLen(s.len + p)
     dec p
     while p >= 0:
       s[at] = digits[p]
@@ -528,7 +525,7 @@ proc dumpHook*(s: var string, v: string) =
     # Then fill the string with pointers.
     # Then cap it off to right length.
     var at = s.len
-    s.grow(v.len*2+2)
+    s.setLen(s.len + v.len*2+2)
 
     var ss = cast[ptr UncheckedArray[char]](s[0].addr)
     template add(ss: ptr UncheckedArray[char], c: char) =
