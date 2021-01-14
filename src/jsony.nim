@@ -476,7 +476,7 @@ const lookup = block:
 
 proc dumpHook*(s: var string, v: uint|uint8|uint16|uint32|uint64) =
   when nimvm:
-    s.add $v
+    s.add $v.uint64
   else:
     # Its faster to not allocate a string for a number,
     # but to write it out the digits directly.
