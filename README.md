@@ -21,16 +21,8 @@ Another speed up comes from not using `StringStream`. Stream has a function disp
 
 Another speed up comes from parsing and readings its own numbers directly from memory buffer. This allows it to bypass `string` allocations that `parseInt` or `$` create.
 
-### Parse speed.
-```
-name ............................... min time      avg time    std dv  times
-treeform/jsony ..................... 6.724 ms     12.047 ms    ±3.694   x100
-status-im/nim-json-serialization ... 7.119 ms     14.276 ms    ±2.033   x100
-nim std/json ...................... 24.141 ms     38.741 ms    ±5.417   x100
-planetis-m/eminim ................. 10.974 ms     18.355 ms    ±3.994   x100
-```
 
-### Serialize speed.
+### Serialize speed
 ```
 name ............................... min time      avg time    std dv  times
 treeform/jsony ..................... 1.531 ms      2.779 ms    ±0.091   x100
@@ -38,6 +30,15 @@ status-im/nim-json-serialization ... 2.043 ms      3.448 ms    ±0.746   x100
 planetis-m/eminim .................. 5.951 ms      9.305 ms    ±3.210   x100
 disruptek/jason ................... 10.312 ms     13.471 ms    ±3.107   x100
 nim std/json ...................... 12.551 ms     19.419 ms    ±4.039   x100
+```
+
+### Deserialize speed
+```
+name ............................... min time      avg time    std dv  times
+treeform/jsony ..................... 6.724 ms     12.047 ms    ±3.694   x100
+status-im/nim-json-serialization ... 7.119 ms     14.276 ms    ±2.033   x100
+nim std/json ...................... 24.141 ms     38.741 ms    ±5.417   x100
+planetis-m/eminim ................. 10.974 ms     18.355 ms    ±3.994   x100
 ```
 
 Note: If you find a faster nim json parser or serializer let me know!

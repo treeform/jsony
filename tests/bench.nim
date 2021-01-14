@@ -1,4 +1,4 @@
-import benchy, random, streams
+import benchy, random, streams, macros
 import jsony, jason
 import eminim
 when defined(packedjson):
@@ -8,6 +8,7 @@ else:
 when not defined(gcArc):
   import serialization
   import json_serialization except Json, toJson
+#from deser_json import parse, to
 
 type Node = ref object
   active: bool
@@ -54,6 +55,10 @@ when defined(packedjson):
 else:
   timeIt "nim std/json", 100:
     keep json.to(json.parseJson(treeStr), Node)
+
+# timeIt "gabbhack/deser_json", 100:
+#   TODO: fix m.tokens[pos].kind == JSMN_OBJECT ...
+#   keep treeStr.parse().to(Node)
 
 echo "serialize:"
 
