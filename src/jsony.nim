@@ -101,6 +101,8 @@ proc parseHook*(s: string, i: var int, v: var SomeSignedInt) =
     v = type(v)(parseInt(parseSymbol(s, i)))
   else:
     eatSpace(s, i)
+    if i < s.len and s[i] == '+':
+      inc i
     if i < s.len and s[i] == '-':
       var v2: uint64
       inc i
@@ -420,7 +422,7 @@ proc parseHook*(s: string, i: var int, v: var JsonNode) =
       v = newJBool(true)
     elif data == "false":
       v = newJBool(false)
-    elif data.len > 0 and data[0] in {'0'..'9'}:
+    elif data.len > 0 and data[0] in {'0'..'9', '-', '+'}:
       if "." in data:
         try:
           v = newJFloat(parseFloat(data))

@@ -24,8 +24,22 @@ block:
   doAssert " -99 ".fromJson(int32) == -99
   doAssert " -99 ".fromJson(int64) == -99
 
+  doAssert " +99 ".fromJson(int8) == 99
+  doAssert " +99 ".fromJson(int16) == 99
+  doAssert " +99 ".fromJson(int32) == 99
+  doAssert " +99 ".fromJson(int64) == 99
+
+  doAssert " 1.25 ".fromJson(float32) == 1.25
+  doAssert " 1.25 ".fromJson(float32) == 1.25
+  doAssert " +1.25 ".fromJson(float64) == 1.25
+  doAssert " +1.25 ".fromJson(float64) == 1.25
+  doAssert " -1.25 ".fromJson(float64) == -1.25
+  doAssert " -1.25 ".fromJson(float64) == -1.25
+
   doAssert " 1.34E3 ".fromJson(float32) == 1.34E3
   doAssert " 1.34E3 ".fromJson(float32) == 1.34E3
+  doAssert " +1.34E3 ".fromJson(float64) == 1.34E3
+  doAssert " +1.34E3 ".fromJson(float64) == 1.34E3
   doAssert " -1.34E3 ".fromJson(float64) == -1.34E3
   doAssert " -1.34E3 ".fromJson(float64) == -1.34E3
 
