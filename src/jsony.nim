@@ -17,6 +17,7 @@ proc parseHook*[T](s: string, i: var int, v: var SomeTable[string, T])
 proc parseHook*[T](s: string, i: var int, v: var SomeSet[T])
 proc parseHook*[T: tuple](s: string, i: var int, v: var T)
 proc parseHook*[T: array](s: string, i: var int, v: var T)
+proc parseHook*[T: ref array](s: string, i: var int, v: var T)
 proc parseHook*(s: string, i: var int, v: var JsonNode)
 proc parseHook*(s: string, i: var int, v: var char)
 
@@ -201,6 +202,14 @@ proc parseHook*[T: array](s: string, i: var int, v: var T) =
     if i < s.len and s[i] == ',':
       inc i
   eatChar(s, i, ']')
+
+proc parseHook*[T: ref array](s: string, i: var int, v: var T) =
+  eatSpace(s, i)
+  if i + 3 < s.len and s[i+0] == 'n' and s[i+1] == 'u' and s[i+2] == 'l' and s[i+3] == 'l':
+    i += 4
+    return
+  new(v)
+  parseHook(s, i, v[])
 
 proc skipValue(s: string, i: var int) =
   ## Used to skip values of extra fields.

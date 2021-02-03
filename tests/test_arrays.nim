@@ -19,3 +19,14 @@ block:
   var v = s.fromJson(array[2, string])
   doAssert v[0] == "no"
   doAssert v[1] == "yes"
+
+block:
+  var s = """["no", "yes"]"""
+  var v = s.fromJson(ref array[2, string])
+  doAssert v[0] == "no"
+  doAssert v[1] == "yes"
+
+block:
+  var s = "null"
+  var v = s.fromJson(ref array[2, string])
+  doAssert v == nil
