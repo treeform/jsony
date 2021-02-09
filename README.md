@@ -86,7 +86,11 @@ doAssert v.colorBlend == "red"
 
 ## Has hooks.
 
-### `proc newHook()` Can be used to populate default values.
+Hooks are a powerful concept that allows you to parse json "your way" and is the main idea behind `jsony`!
+
+* Note: that hooks need to be exported to where you are parsing the json so that the parsing system can pick them up.
+
+### `proc newHook*()` Can be used to populate default values.
 
 Sometimes the absence of a field means it should have a default value. Normally this would just be Nim's default value for the variable type but that isn't always what you want. With the newHook() you can initialize the object's defaults before the main parsing happens.
 
@@ -95,7 +99,7 @@ type
   Foo5 = object
     visible: string
     id: string
-proc newHook(foo: var Foo5) =
+proc newHook*(foo: var Foo5) =
   # Populates the object before its fully deserialized.
   foo.visible = "yes"
 
@@ -105,7 +109,7 @@ doAssert v.id == "123"
 doAssert v.visible == "yes"
 ```
 
-### `proc postHook()` Can be used to run code after the object is fully parsed.
+### `proc postHook*()` Can be used to run code after the object is fully parsed.
 
 Some times we need run some code after the object is created. For example to set other values based on values that where set but are not part of the json data. Maybe to sanitize the object or convert older versions to new versions. Here I need to retain the original size as I will be messing with the object's regular size:
 
@@ -114,7 +118,7 @@ type Sizer = object
   size: int
   originalSize: int
 
-proc postHook(v: var Sizer) =
+proc postHook*(v: var Sizer) =
   v.originalSize = v.size
 
 var sizer = """{"size":10}""".fromJson(Sizer)
@@ -122,9 +126,9 @@ doAssert sizer.size == 10
 doAssert sizer.originalSize == 10
 ```
 
-### `proc enumHook()` Can be used to parse enums.
+### `proc enumHook*()` Can be used to parse enums.
 
-In the wild json enum names almost never match to Nim enum names which usually have a prefix. The enumHook() allows you to rename the enums to your internal names.
+In the wild json enum names almost never match to Nim enum names which usually have a prefix. The `enumHook*()` allows you to rename the enums to your internal names.
 
 ```nim
 type Color2 = enum
@@ -132,7 +136,7 @@ type Color2 = enum
   c2Blue
   c2Green
 
-proc enumHook(v: string): Color2 =
+proc enumHook*(v: string): Color2 =
   case v:
   of "RED": c2Red
   of "BLUE": c2Blue
@@ -144,15 +148,15 @@ doAssert """ "BLUE" """.fromJson(Color2) == c2Blue
 doAssert """ "GREEN" """.fromJson(Color2) == c2Green
 ```
 
-### `proc renameHook()` Can be used to rename fields at run time.
+### `proc renameHook*()` Can be used to rename fields at run time.
 
-In the wild json field names can be reserved words such as type, class, or array. With the renameHook you can rename fields to what you want.
+In the wild json field names can be reserved words such as type, class, or array. With the `renameHook*()` you can rename fields to what you want.
 
 ```nim
 type Node = ref object
   kind: string
 
-proc renameHook(v: var Node, fieldName: var string) =
+proc renameHook*(v: var Node, fieldName: var string) =
   if fieldName == "type":
     fieldName = "kind"
 
@@ -160,13 +164,13 @@ var node = """{"type":"root"}""".fromJson(Node)
 doAssert node.kind == "root"
 ```
 
-### `proc parseHook()` Can be used to do anything.
+### `proc parseHook*()` Can be used to do anything.
 
 Json can't store dates, so they are usually stored as strings. You can use
-`parseHook()` to override default parsing and parse `DateTime` as a `string`:
+`parseHook*()` to override default parsing and parse `DateTime` as a `string`:
 
 ```nim
-proc parseHook(s: string, i: var int, v: var DateTime) =
+proc parseHook*(s: string, i: var int, v: var DateTime) =
   var str: string
   parseHook(s, i, str)
   v = parse(str, "yyyy-MM-dd hh:mm:ss")
@@ -174,7 +178,7 @@ proc parseHook(s: string, i: var int, v: var DateTime) =
 var dt = """ "2020-01-01 00:00:00" """.fromJson(DateTime)
 ```
 
-Sometimes json gives you an object of entries with their id as keys, but you might want it as a sequence with ids inside the objects. You can handle this and many other scenarios with `parseHook()`:
+Sometimes json gives you an object of entries with their id as keys, but you might want it as a sequence with ids inside the objects. You can handle this and many other scenarios with `parseHook*()`:
 
 ```nim
 type Entry = object
@@ -188,7 +192,7 @@ let data = """{
   "3": {"count":99, "filled": 99}
 }"""
 
-proc parseHook(s: string, i: var int, v: var seq[Entry]) =
+proc parseHook*(s: string, i: var int, v: var seq[Entry]) =
   var table: Table[string, Entry]
   parseHook(s, i, table)
   for k, entry in table.mpairs:
@@ -207,16 +211,16 @@ Gives us:
 ]"""
 ```
 
-### `proc dumpHook()` Can be used to serializer into custom representation.
+### `proc dumpHook*()` Can be used to serializer into custom representation.
 
-Just like reading custom data types you can also write data types with `dumpHook`.
+Just like reading custom data types you can also write data types with `dumpHook*()`.
 
 ```nim
 type Fraction = object
   numerator: int
   denominator: int
 
-proc dumpHook(s: var string, v: Fraction) =
+proc dumpHook*(s: var string, v: Fraction) =
   ## Output fraction type as a string "x/y".
   s.add '"'
   s.add $v.numerator
