@@ -65,7 +65,7 @@ Extra json fields are ignored and missing json fields keep their default values.
 type Entry1 = object
   color: string
 var s = """{"extra":"foo"}"""
-var v = fromJson[Entry1](s)
+var v = s.fromJson(Entry1)
 doAssert v.color == ""
 ```
 
@@ -75,12 +75,12 @@ Nim usually uses `camelCase` for its variables, while a bunch of json in the wil
 
 ```nim
 type Entry4 = object
-colorBlend: string
+  colorBlend: string
 
-var v = fromJson[Entry4]("""{"colorBlend":"red"}""")
+var v = """{"colorBlend":"red"}""".fromJson(Entry4)
 doAssert v.colorBlend == "red"
 
-v = fromJson[Entry4]("""{"color_blend":"red"}""")
+v = """{"color_blend":"red"}""".fromJson(Entry4)
 doAssert v.colorBlend == "red"
 ```
 
@@ -100,7 +100,7 @@ proc newHook(foo: var Foo5) =
   foo.visible = "yes"
 
 var s = """{"id":"123"}"""
-var v = fromJson[Foo5](s)
+var v = s.fromJson(s)
 doAssert v.id == "123"
 doAssert v.visible == "yes"
 ```
@@ -117,7 +117,7 @@ type Sizer = object
 proc postHook(v: var Sizer) =
   v.originalSize = v.size
 
-var sizer = fromJson[Sizer]("""{"size":10}""")
+var sizer = """{"size":10}""".fromJson(Sizer)
 doAssert sizer.size == 10
 doAssert sizer.originalSize == 10
 ```
@@ -139,9 +139,9 @@ proc enumHook(v: string): Color2 =
   of "GREEN": c2Green
   else: c2Red
 
-doAssert fromJson[Color2](""" "RED" """) == c2Red
-doAssert fromJson[Color2](""" "BLUE" """) == c2Blue
-doAssert fromJson[Color2](""" "GREEN" """) == c2Green
+doAssert """ "RED" """.fromJson(Color2) == c2Red
+doAssert """ "BLUE" """.fromJson(Color2) == c2Blue
+doAssert """ "GREEN" """.fromJson(Color2) == c2Green
 ```
 
 ### `proc renameHook()` Can be used to rename fields at run time.
@@ -156,7 +156,7 @@ proc renameHook(v: var Node, fieldName: var string) =
   if fieldName == "type":
     fieldName = "kind"
 
-var node = fromJson[Node]("""{"type":"root"}""")
+var node = """{"type":"root"}""".fromJson(Node)
 doAssert node.kind == "root"
 ```
 
@@ -171,7 +171,7 @@ proc parseHook(s: string, i: var int, v: var DateTime) =
   parseHook(s, i, str)
   v = parse(str, "yyyy-MM-dd hh:mm:ss")
 
-var dt = fromJson[DateTime](""" "2020-01-01 00:00:00" """)
+var dt = """ "2020-01-01 00:00:00" """.fromJson(DateTime)
 ```
 
 Sometimes json gives you an object of entries with their id as keys, but you might want it as a sequence with ids inside the objects. You can handle this and many other scenarios with `parseHook()`:
@@ -195,7 +195,7 @@ proc parseHook(s: string, i: var int, v: var seq[Entry]) =
     entry.id = k
     v.add(entry)
 
-let s = fromJson[seq[Entry]](data)
+let s = data.fromJson(seq[Entry])
 ```
 
 Gives us:
