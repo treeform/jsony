@@ -301,6 +301,8 @@ proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
       var key: string
       parseHook(s, i, key)
       eatChar(s, i, ':')
+      when compiles(renameHook(v, key)):
+        renameHook(v, key)
       if key == v.discriminatorFieldName:
         var discriminator: type(v.discriminatorField)
         parseHook(s, i, discriminator)

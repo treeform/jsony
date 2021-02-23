@@ -228,3 +228,42 @@ block:
     doAssertRaises JsonError:
       let
         a = """{"active":true,"floatVal":3.14}""".fromJson(ValueNode)
+
+type
+    NodeNumKind = enum  # the different node types
+      nkInt,          # a leaf with an integer value
+      nkFloat,        # a leaf with a float value
+    RefNode = ref object
+      active: bool
+      case kind: NodeNumKind  # the ``kind`` field is the discriminator
+      of nkInt: intVal: int
+      of nkFloat: floatVal: float
+    ValueNode = object
+      active: bool
+      case kind: NodeNumKind  # the ``kind`` field is the discriminator
+      of nkInt: intVal: int
+      of nkFloat: floatVal: float
+
+proc renameHook*(v: var RefNode|ValueNode, fieldName: var string) = 
+  # rename``type`` field name to ``kind``
+  if fieldName == "type":
+    fieldName = "kind"
+
+# Test renameHook and discriminator Field Name not being first.
+block:
+  let
+    a = """{"active":true,"type":"nkFloat","floatVal":3.14}""".fromJson(RefNode)
+    b = """{"floatVal":3.14,"active":true,"type":"nkFloat"}""".fromJson(RefNode)
+    c = """{"type":"nkFloat","floatVal":3.14,"active":true}""".fromJson(RefNode)
+  doAssert a.kind == nkFloat
+  doAssert b.kind == nkFloat
+  doAssert c.kind == nkFloat
+
+block:
+  let
+    a = """{"active":true,"type":"nkFloat","floatVal":3.14}""".fromJson(ValueNode)
+    b = """{"floatVal":3.14,"active":true,"type":"nkFloat"}""".fromJson(ValueNode)
+    c = """{"type":"nkFloat","floatVal":3.14,"active":true}""".fromJson(ValueNode)
+  doAssert a.kind == nkFloat
+  doAssert b.kind == nkFloat
+  doAssert c.kind == nkFloat
