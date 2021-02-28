@@ -42,7 +42,7 @@ template eatChar*(s: string, i: var int, c: char) =
   if s[i] == c:
     inc i
   else:
-    error("Expected " & c & ".", i)
+    error("Expected " & c & " but got " & s[i] & " instead.", i)
 
 proc parseSymbol*(s: string, i: var int): string =
   ## Will read a symbol and return it.
@@ -181,7 +181,6 @@ proc parseHook*[T](s: string, i: var int, v: var seq[T]) =
 
 proc parseHook*[T: tuple](s: string, i: var int, v: var T) =
   eatSpace(s, i)
-  var strV: string
   eatChar(s, i, '[')
   for name, value in v.fieldPairs:
     eatSpace(s, i)
@@ -193,7 +192,6 @@ proc parseHook*[T: tuple](s: string, i: var int, v: var T) =
 
 proc parseHook*[T: array](s: string, i: var int, v: var T) =
   eatSpace(s, i)
-  var strV: string
   eatChar(s, i, '[')
   for value in v.mitems:
     eatSpace(s, i)
