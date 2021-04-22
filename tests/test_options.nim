@@ -34,3 +34,12 @@ type Entry = object
   color: string
 
 check(Entry())
+
+type
+  Test = object
+    key: Option[int]
+var test = """{ "key": null }""".fromJson(Test)
+doAssert test.key.isNone == true
+var test2 = """{ "key": 2 }""".fromJson(Test)
+doAssert test2.key.isNone == false
+doAssert test2.key.get == 2
