@@ -538,6 +538,7 @@ proc dumpHook*(s: var string, v: string) =
       of '\n': s.add r"\n"
       of '\r': s.add r"\r"
       of '\t': s.add r"\t"
+      of '"': s.add r"\"""
       else:
         s.add c
     s.add '"'
@@ -567,6 +568,7 @@ proc dumpHook*(s: var string, v: string) =
       of '\n': ss.add '\\', 'n'
       of '\r': ss.add '\\', 'r'
       of '\t': ss.add '\\', 't'
+      of '"': ss.add '\\', '"'
       else:
         ss.add c
     ss.add '"'

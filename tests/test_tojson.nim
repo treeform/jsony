@@ -31,6 +31,7 @@ doAssert 'a'.toJson == "\"a\""
 match "hi there"
 match "hi\nthere\b\f\n\r\t"
 match "как дела"
+match """ "quote\"inside" """
 
 block:
   type
