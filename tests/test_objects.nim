@@ -244,7 +244,7 @@ type
       of nkInt: intVal: int
       of nkFloat: floatVal: float
 
-proc renameHook*(v: var RefNode|ValueNode, fieldName: var string) = 
+proc renameHook*(v: var RefNode|ValueNode, fieldName: var string) =
   # rename``type`` field name to ``kind``
   if fieldName == "type":
     fieldName = "kind"
@@ -267,3 +267,20 @@ block:
   doAssert a.kind == nkFloat
   doAssert b.kind == nkFloat
   doAssert c.kind == nkFloat
+
+
+# test https://forum.nim-lang.org/t/7619
+
+import jsony
+
+type
+  FooBar = object
+    `Foo Bar`: string
+
+const jsonString = "{\"Foo Bar\": \"Hello World\"}"
+
+proc renameHook*(v: var FooBar, fieldName: var string) =
+  if fieldName == "Foo Bar":
+    fieldName = "FooBar"
+
+echo jsonString.fromJson(FooBar)
