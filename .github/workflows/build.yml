@@ -14,5 +14,5 @@ jobs:
     - uses: jiro4989/setup-nim-action@v1
     - run: nimble test -y
     - run: nimble test --gc:orc -y
-    - run: nim js all.nim
-    - run: nim cpp -d:release --gc:arc all.nim
+    - run: nim js tests/all.nim
+    - run: nim cpp -d:release --gc:arc tests/all.nim

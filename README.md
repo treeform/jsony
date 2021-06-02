@@ -4,8 +4,9 @@ Pure nim module with no other dependencies.
 
 ![Github Actions](https://github.com/treeform/vmath/workflows/Github%20Actions/badge.svg)
 
-
 `nimble install jsony`
+
+Check out the [Api Reference](https://nimdocs.com/treeform/jsony/jsony.html).
 
 ```nim
 @[1, 2, 3].toJson() -> "[1,2,3]"
