@@ -29,20 +29,20 @@ Another speed up comes from parsing and readings its own numbers directly from m
 ### Serialize speed
 ```
 name ............................... min time      avg time    std dv  times
-treeform/jsony ..................... 1.531 ms      2.779 ms    ±0.091   x100
+treeform/jsony ..................... 1.317 ms      1.365 ms    ±0.054   x100
 status-im/nim-json-serialization ... 2.043 ms      3.448 ms    ±0.746   x100
 planetis-m/eminim .................. 5.951 ms      9.305 ms    ±3.210   x100
-disruptek/jason ................... 10.312 ms     13.471 ms    ±3.107   x100
-nim std/json ...................... 12.551 ms     19.419 ms    ±4.039   x100
+disruptek/jason .................... 6.858 ms      7.043 ms    ±0.125   x100
+nim std/json ....................... 8.222 ms      8.510 ms    ±0.123   x100
 ```
 
 ### Deserialize speed
 ```
 name ............................... min time      avg time    std dv  times
-treeform/jsony ..................... 6.724 ms     12.047 ms    ±3.694   x100
+treeform/jsony ..................... 4.134 ms      4.196 ms    ±0.052   x100
 status-im/nim-json-serialization ... 7.119 ms     14.276 ms    ±2.033   x100
-nim std/json ...................... 24.141 ms     38.741 ms    ±5.417   x100
-planetis-m/eminim ................. 10.974 ms     18.355 ms    ±3.994   x100
+planetis-m/eminim .................. 7.761 ms      8.001 ms    ±0.277   x100
+nim std/json ...................... 14.326 ms     14.473 ms    ±0.113   x100
 ```
 
 Note: If you find a faster nim json parser or serializer let me know!
