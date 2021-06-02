@@ -5,7 +5,7 @@ type JsonError* = object of ValueError
 const whiteSpace = {' ', '\n', '\t', '\r'}
 
 when defined(release):
-  {.push checks: off.}
+  {.push checks: off, inline.}
 
 type SomeTable*[K, V] = Table[K, V] | OrderedTable[K, V] |
   TableRef[K, V] | OrderedTableRef[K, V]
@@ -486,36 +486,45 @@ const lookup = block:
     s.add($i)
   s
 
+proc dumpNumberSlow(s: var string, v: uint|uint8|uint16|uint32|uint64) =
+  s.add $v.uint64
+
+proc dumpNumberFast(s: var string, v: uint|uint8|uint16|uint32|uint64) =
+  # Its faster to not allocate a string for a number,
+  # but to write it out the digits directly.
+  if v == 0:
+    s.add '0'
+    return
+  # Max size of a uin64 number is 20 digits.
+  var digits: array[20, char]
+  var v = v
+  var p = 0
+  while v != 0:
+    # Its faster to look up 2 digits at a time, less int divisions.
+    let idx = v mod 100
+    digits[p] = lookup[idx*2+1]
+    inc p
+    digits[p] = lookup[idx*2]
+    inc p
+    v = v div 100
+  var at = s.len
+  if digits[p-1] == '0':
+    dec p
+  s.setLen(s.len + p)
+  dec p
+  while p >= 0:
+    s[at] = digits[p]
+    dec p
+    inc at
+
 proc dumpHook*(s: var string, v: uint|uint8|uint16|uint32|uint64) =
   when nimvm:
-    s.add $v.uint64
+    s.dumpNumberSlow(v)
   else:
-    # Its faster to not allocate a string for a number,
-    # but to write it out the digits directly.
-    if v == 0:
-      s.add '0'
-      return
-    # Max size of a uin64 number is 20 digits.
-    var digits: array[20, char]
-    var v = v
-    var p = 0
-    while v != 0:
-      # Its faster to look up 2 digits at a time, less int divisions.
-      let idx = v mod 100
-      digits[p] = lookup[idx*2+1]
-      inc p
-      digits[p] = lookup[idx*2]
-      inc p
-      v = v div 100
-    var at = s.len
-    if digits[p-1] == '0':
-      dec p
-    s.setLen(s.len + p)
-    dec p
-    while p >= 0:
-      s[at] = digits[p]
-      dec p
-      inc at
+    when defined(js):
+      s.dumpNumberSlow(v)
+    else:
+      s.dumpNumberFast(v)
 
 proc dumpHook*(s: var string, v: int|int8|int16|int32|int64) =
   if v < 0:
@@ -527,52 +536,61 @@ proc dumpHook*(s: var string, v: int|int8|int16|int32|int64) =
 proc dumpHook*(s: var string, v: SomeFloat) =
   s.add $v
 
+proc dumpStrSlow(s: var string, v: string) =
+  s.add '"'
+  for c in v:
+    case c:
+    of '\\': s.add r"\\"
+    of '\b': s.add r"\b"
+    of '\f': s.add r"\f"
+    of '\n': s.add r"\n"
+    of '\r': s.add r"\r"
+    of '\t': s.add r"\t"
+    of '"': s.add r"\"""
+    else:
+      s.add c
+  s.add '"'
+
+proc dumpStrFast(s: var string, v: string) =
+  # Its faster to grow the string only once.
+  # Then fill the string with pointers.
+  # Then cap it off to right length.
+  var at = s.len
+  s.setLen(s.len + v.len*2+2)
+
+  var ss = cast[ptr UncheckedArray[char]](s[0].addr)
+  template add(ss: ptr UncheckedArray[char], c: char) =
+    ss[at] = c
+    inc at
+  template add(ss: ptr UncheckedArray[char], c1, c2: char) =
+    ss[at] = c1
+    inc at
+    ss[at] = c2
+    inc at
+
+  ss.add '"'
+  for c in v:
+    case c:
+    of '\\': ss.add '\\', '\\'
+    of '\b': ss.add '\\', 'b'
+    of '\f': ss.add '\\', 'f'
+    of '\n': ss.add '\\', 'n'
+    of '\r': ss.add '\\', 'r'
+    of '\t': ss.add '\\', 't'
+    of '"': ss.add '\\', '"'
+    else:
+      ss.add c
+  ss.add '"'
+  s.setLen(at)
+
 proc dumpHook*(s: var string, v: string) =
   when nimvm:
-    s.add '"'
-    for c in v:
-      case c:
-      of '\\': s.add r"\\"
-      of '\b': s.add r"\b"
-      of '\f': s.add r"\f"
-      of '\n': s.add r"\n"
-      of '\r': s.add r"\r"
-      of '\t': s.add r"\t"
-      of '"': s.add r"\"""
-      else:
-        s.add c
-    s.add '"'
+    s.dumpStrSlow(v)
   else:
-    # Its faster to grow the string only once.
-    # Then fill the string with pointers.
-    # Then cap it off to right length.
-    var at = s.len
-    s.setLen(s.len + v.len*2+2)
-
-    var ss = cast[ptr UncheckedArray[char]](s[0].addr)
-    template add(ss: ptr UncheckedArray[char], c: char) =
-      ss[at] = c
-      inc at
-    template add(ss: ptr UncheckedArray[char], c1, c2: char) =
-      ss[at] = c1
-      inc at
-      ss[at] = c2
-      inc at
-
-    ss.add '"'
-    for c in v:
-      case c:
-      of '\\': ss.add '\\', '\\'
-      of '\b': ss.add '\\', 'b'
-      of '\f': ss.add '\\', 'f'
-      of '\n': ss.add '\\', 'n'
-      of '\r': ss.add '\\', 'r'
-      of '\t': ss.add '\\', 't'
-      of '"': ss.add '\\', '"'
-      else:
-        ss.add c
-    ss.add '"'
-    s.setLen(at)
+    when defined(js):
+      s.dumpStrSlow(v)
+    else:
+      s.dumpStrFast(v)
 
 template dumpKey(s: var string, v: string) =
   const v2 = v.toJson() & ":"

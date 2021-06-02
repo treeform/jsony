@@ -4,6 +4,7 @@
 !*.*
 
 # normal ignores:
+*.js
 *.exe
 nimcache
 *.pdb
