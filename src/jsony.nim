@@ -127,13 +127,7 @@ proc parseHook*(s: string, i: var int, v: var SomeFloat) =
   i += chars
   v = f
 
-proc parseHook*(s: string, i: var int, v: var string) =
-  ## Parse string.
-  eatSpace(s, i)
-  if i + 3 < s.len and s[i+0] == 'n' and s[i+1] == 'u' and s[i+2] == 'l' and s[i+3] == 'l':
-    i += 4
-    return
-  eatChar(s, i, '"')
+proc parseStringSlow(s: string, i: var int, v: var string) =
   while i < s.len:
     let c = s[i]
     case c
@@ -160,6 +154,85 @@ proc parseHook*(s: string, i: var int, v: var string) =
       v.add(c)
     inc i
   eatChar(s, i, '"')
+
+proc parseStringFast(s: string, i: var int, v: var string) =
+  # It appears to be faster to scan the string once, then allocate exact chars,
+  # and then scan the string again populating it.
+  var
+    j = i
+    ll = 0
+  while j < s.len:
+    let c = s[j]
+    case c
+    of '"':
+      break
+    of '\\':
+      inc j
+      let c = s[j]
+      case c
+      of 'u':
+        inc j
+        let u = parseHexInt(s[j ..< j + 4])
+        j += 3
+        ll += Rune(u).toUTF8().len
+      else:
+        inc ll
+    else:
+      inc ll
+    inc j
+
+  if ll > 0:
+    v = newString(ll)
+    var
+      at = 0
+      ss = cast[ptr UncheckedArray[char]](v[0].addr)
+    template add(ss: ptr UncheckedArray[char], c: char) =
+      ss[at] = c
+      inc at
+    while i < s.len:
+      let c = s[i]
+      case c
+      of '"':
+        break
+      of '\\':
+        inc i
+        let c = s[i]
+        case c
+        of '"', '\\', '/': ss.add(c)
+        of 'b': ss.add '\b'
+        of 'f': ss.add '\f'
+        of 'n': ss.add '\n'
+        of 'r': ss.add '\r'
+        of 't': ss.add '\t'
+        of 'u':
+          inc i
+          let u = parseHexInt(s[i ..< i + 4])
+          i += 3
+          for c in Rune(u).toUTF8():
+            ss.add(c)
+        else:
+          ss.add(c)
+      else:
+        ss.add(c)
+      inc i
+
+  eatChar(s, i, '"')
+
+proc parseHook*(s: string, i: var int, v: var string) =
+  ## Parse string.
+  eatSpace(s, i)
+  if i + 3 < s.len and s[i+0] == 'n' and s[i+1] == 'u' and s[i+2] == 'l' and s[i+3] == 'l':
+    i += 4
+    return
+  eatChar(s, i, '"')
+
+  when nimvm:
+    parseStringSlow(s, i, v)
+  else:
+    when defined(js):
+      parseStringSlow(s, i, v)
+    else:
+      parseStringFast(s, i, v)
 
 proc parseHook*(s: string, i: var int, v: var char) =
   var str: string
