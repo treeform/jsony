@@ -2,6 +2,9 @@
 
 Pure nim module with no other dependencies.
 
+![Github Actions](https://github.com/treeform/vmath/workflows/Github%20Actions/badge.svg)
+
+
 `nimble install jsony`
 
 ```nim
