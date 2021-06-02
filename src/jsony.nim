@@ -1,4 +1,4 @@
-import jsony/objvar, strutils, tables, sets, unicode, json, options
+import jsony/objvar, strutils, tables, sets, unicode, json, options, parseutils
 
 type JsonError* = object of ValueError
 
@@ -119,7 +119,13 @@ proc parseHook*(s: string, i: var int, v: var SomeSignedInt) =
 
 proc parseHook*(s: string, i: var int, v: var SomeFloat) =
   ## Will parse float32 and float64.
-  v = type(v)(parseFloat(parseSymbol(s, i)))
+  var f: float
+  eatSpace(s, i)
+  let chars = parseutils.parseFloat(s, f, i)
+  if chars == 0:
+     error("Failed to parse a float.", i)
+  i += chars
+  v = f
 
 proc parseHook*(s: string, i: var int, v: var string) =
   ## Parse string.
