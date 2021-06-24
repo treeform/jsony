@@ -17,7 +17,7 @@ proc parseHook*[T](s: string, i: var int, v: var SomeTable[string, T])
 proc parseHook*[T](s: string, i: var int, v: var SomeSet[T])
 proc parseHook*[T: tuple](s: string, i: var int, v: var T)
 proc parseHook*[T: array](s: string, i: var int, v: var T)
-proc parseHook*[T: ref array](s: string, i: var int, v: var T)
+proc parseHook*[T: not object](s: string, i: var int, v: var ref T)
 proc parseHook*(s: string, i: var int, v: var JsonNode)
 proc parseHook*(s: string, i: var int, v: var char)
 
@@ -280,7 +280,7 @@ proc parseHook*[T: array](s: string, i: var int, v: var T) =
       inc i
   eatChar(s, i, ']')
 
-proc parseHook*[T: ref array](s: string, i: var int, v: var T) =
+proc parseHook*[T: not object](s: string, i: var int, v: var ref T) =
   eatSpace(s, i)
   if i + 3 < s.len and s[i+0] == 'n' and s[i+1] == 'u' and s[i+2] == 'l' and s[i+3] == 'l':
     i += 4
@@ -548,7 +548,7 @@ proc dumpHook*(s: var string, v: enum)
 proc dumpHook*[N, T](s: var string, v: array[N, T])
 proc dumpHook*[T](s: var string, v: seq[T])
 proc dumpHook*(s: var string, v: object)
-proc dumpHook*(s: var string, v: ref object)
+proc dumpHook*(s: var string, v: ref)
 
 proc dumpHook*(s: var string, v: bool) =
   if v:
@@ -739,7 +739,7 @@ proc dumpHook*(s: var string, v: object) =
       inc i
   s.add '}'
 
-proc dumpHook*(s: var string, v: ref object) =
+proc dumpHook*(s: var string, v: ref) =
   if v == nil:
     s.add "null"
   else:

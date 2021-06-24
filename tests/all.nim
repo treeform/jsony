@@ -17,5 +17,6 @@ import test_strings
 import test_tables
 import test_tojson
 import test_tuples
+import test_refs
 
 echo "all tests pass"
