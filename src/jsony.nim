@@ -1,4 +1,4 @@
-import jsony/objvar, strutils, tables, sets, unicode, json, options, parseutils
+import jsony/objvar, strutils, tables, sets, unicode, json, options, parseutils, typetraits
 
 type JsonError* = object of ValueError
 
@@ -20,6 +20,7 @@ proc parseHook*[T: array](s: string, i: var int, v: var T)
 proc parseHook*[T: not object](s: string, i: var int, v: var ref T)
 proc parseHook*(s: string, i: var int, v: var JsonNode)
 proc parseHook*(s: string, i: var int, v: var char)
+proc parseHook*[T: distinct](s: string, i: var int, v: var T)
 
 template error(msg: string, i: int) =
   ## Shortcut to raise an exception.
@@ -525,6 +526,11 @@ proc parseHook*(s: string, i: var int, v: var JsonNode) =
     else:
       error("Unexpected.", i)
 
+proc parseHook*[T: distinct](s: string, i: var int, v: var T) =
+  var x: T.distinctBase
+  parseHook(s, i, x)
+  v = cast[T](x)
+
 proc fromJson*[T](s: string, x: typedesc[T]): T =
   ## Takes json and outputs the object it represents.
   ## * Extra json fields are ignored.
@@ -549,6 +555,11 @@ proc dumpHook*[N, T](s: var string, v: array[N, T])
 proc dumpHook*[T](s: var string, v: seq[T])
 proc dumpHook*(s: var string, v: object)
 proc dumpHook*(s: var string, v: ref)
+proc dumpHook*[T: distinct](s: var string, v: T)
+
+proc dumpHook*[T: distinct](s: var string, v: T) =
+  var x = cast[T.distinctBase](v)
+  s.dumpHook(x)
 
 proc dumpHook*(s: var string, v: bool) =
   if v:
