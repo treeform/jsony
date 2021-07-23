@@ -1,6 +1,6 @@
 import jsony/objvar, strutils, tables, sets, unicode, json, options
 
-type JsonError* = object of ValueError
+type JsonyError* = object of ValueError
 
 const whiteSpace = {' ', '\n', '\t', '\r'}
 
@@ -23,7 +23,7 @@ proc parseHook*(s: string, i: var int, v: var char)
 
 template error(msg: string, i: int) =
   ## Shortcut to raise an exception.
-  raise newException(JsonError, msg & " At offset: " & $i)
+  raise newException(JsonyError, msg & " At offset: " & $i)
 
 template eatSpace*(s: string, i: var int) =
   ## Will consume whitespace.
@@ -490,32 +490,35 @@ proc dumpHook*(s: var string, v: uint|uint8|uint16|uint32|uint64) =
   when nimvm:
     s.add $v.uint64
   else:
-    # Its faster to not allocate a string for a number,
-    # but to write it out the digits directly.
-    if v == 0:
-      s.add '0'
-      return
-    # Max size of a uin64 number is 20 digits.
-    var digits: array[20, char]
-    var v = v
-    var p = 0
-    while v != 0:
-      # Its faster to look up 2 digits at a time, less int divisions.
-      let idx = v mod 100
-      digits[p] = lookup[idx*2+1]
-      inc p
-      digits[p] = lookup[idx*2]
-      inc p
-      v = v div 100
-    var at = s.len
-    if digits[p-1] == '0':
+    when defined(js):
+      s.add $v.uint64
+    else:
+      # Its faster to not allocate a string for a number,
+      # but to write it out the digits directly.
+      if v == 0:
+        s.add '0'
+        return
+      # Max size of a uin64 number is 20 digits.
+      var digits: array[20, char]
+      var v = v
+      var p = 0
+      while v != 0:
+        # Its faster to look up 2 digits at a time, less int divisions.
+        let idx = v mod 100
+        digits[p] = lookup[idx*2+1]
+        inc p
+        digits[p] = lookup[idx*2]
+        inc p
+        v = v div 100
+      var at = s.len
+      if digits[p-1] == '0':
+        dec p
+      s.setLen(s.len + p)
       dec p
-    s.setLen(s.len + p)
-    dec p
-    while p >= 0:
-      s[at] = digits[p]
-      dec p
-      inc at
+      while p >= 0:
+        s[at] = digits[p]
+        dec p
+        inc at
 
 proc dumpHook*(s: var string, v: int|int8|int16|int32|int64) =
   if v < 0:
@@ -527,21 +530,22 @@ proc dumpHook*(s: var string, v: int|int8|int16|int32|int64) =
 proc dumpHook*(s: var string, v: SomeFloat) =
   s.add $v
 
-proc dumpHook*(s: var string, v: string) =
-  when nimvm:
-    s.add '"'
-    for c in v:
-      case c:
-      of '\\': s.add r"\\"
-      of '\b': s.add r"\b"
-      of '\f': s.add r"\f"
-      of '\n': s.add r"\n"
-      of '\r': s.add r"\r"
-      of '\t': s.add r"\t"
-      else:
-        s.add c
-    s.add '"'
-  else:
+proc dumpStringSlow(s: var string, v: string) =
+  s.add '"'
+  for c in v:
+    case c:
+    of '\\': s.add r"\\"
+    of '\b': s.add r"\b"
+    of '\f': s.add r"\f"
+    of '\n': s.add r"\n"
+    of '\r': s.add r"\r"
+    of '\t': s.add r"\t"
+    else:
+      s.add c
+  s.add '"'
+
+when not defined(js):
+  proc dumpStringFast(s: var string, v: string) =
     # Its faster to grow the string only once.
     # Then fill the string with pointers.
     # Then cap it off to right length.
@@ -571,6 +575,15 @@ proc dumpHook*(s: var string, v: string) =
         ss.add c
     ss.add '"'
     s.setLen(at)
+
+proc dumpHook*(s: var string, v: string) =
+  when nimvm:
+    s.dumpStringSlow(v)
+  else:
+    when defined(js):
+      s.dumpStringSlow(v)
+    else:
+      s.dumpStringFast(v)
 
 template dumpKey(s: var string, v: string) =
   const v2 = v.toJson() & ":"

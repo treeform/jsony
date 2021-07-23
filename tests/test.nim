@@ -1,4 +1,177 @@
-import jsony, strutils
+import json, jsony, strutils, options, tables, times
+
+# Test arrays.
+
+block:
+  var s = "[1, 2, 3]"
+  var v = s.fromJson(array[3, int])
+  doAssert v[0] == 1
+  doAssert v[1] == 2
+  doAssert v[2] == 3
+
+block:
+  var s = "[1.5, 2.25, 3.0]"
+  var v = s.fromJson(array[3, float32])
+  doAssert v[0] == 1.5
+  doAssert v[1] == 2.25
+  doAssert v[2] == 3.0
+
+block:
+  var s = """["no", "yes"]"""
+  var v = s.fromJson(array[2, string])
+  doAssert v[0] == "no"
+  doAssert v[1] == "yes"
+
+block:
+  var s = """["no", "yes"]"""
+  var v = s.fromJson(ref array[2, string])
+  doAssert v[0] == "no"
+  doAssert v[1] == "yes"
+
+block:
+  var s = "null"
+  var v = s.fromJson(ref array[2, string])
+  doAssert v == nil
+
+# Test char.
+
+doAssert """ "a" """.fromJson(char) == 'a'
+doAssert """["a"]""".fromJson(seq[char]) == @['a']
+doAssert """["a", "b", "c"]""".fromJson(seq[char]) == @['a', 'b', 'c']
+doAssert 'a'.toJson() == """"a""""
+doAssert 'b'.toJson() == """"b""""
+
+# Test enums
+
+type Color = enum
+  cRed
+  cBlue
+  cGreen
+
+doAssert "0".fromJson(Color) == cRed
+doAssert "1".fromJson(Color) == cBlue
+doAssert "2".fromJson(Color) == cGreen
+
+doAssert """ "cRed" """.fromJson(Color) == cRed
+doAssert """ "cBlue" """.fromJson(Color) == cBlue
+doAssert """ "cGreen" """.fromJson(Color) == cGreen
+
+type Color2 = enum
+  c2Red
+  c2Blue
+  c2Green
+
+proc enumHook(s: string, v: var Color2) =
+  v = case s:
+  of "RED": c2Red
+  of "BLUE": c2Blue
+  of "GREEN": c2Green
+  else: c2Red
+
+doAssert """ "RED" """.fromJson(Color2) == c2Red
+doAssert """ "BLUE" """.fromJson(Color2) == c2Blue
+doAssert """ "GREEN" """.fromJson(Color2) == c2Green
+
+# Test numbers.
+
+block:
+  doAssert "true".fromJson(bool) == true
+  doAssert "false".fromJson(bool) == false
+  doAssert " true  ".fromJson(bool) == true
+  doAssert "  false    ".fromJson(bool) == false
+
+  doAssert "1".fromJson(int) == 1
+  doAssert "12".fromJson(int) == 12
+  doAssert "  123  ".fromJson(int) == 123
+
+  doAssert " 123 ".fromJson(int8) == 123
+  doAssert " 123 ".fromJson(uint8) == 123
+  doAssert " 123 ".fromJson(int16) == 123
+  doAssert " 123 ".fromJson(uint16) == 123
+  doAssert " 123 ".fromJson(int32) == 123
+  doAssert " 123 ".fromJson(uint32) == 123
+  doAssert " 123 ".fromJson(int64) == 123
+  doAssert " 123 ".fromJson(uint64) == 123
+
+  doAssert " -99 ".fromJson(int8) == -99
+  doAssert " -99 ".fromJson(int16) == -99
+  doAssert " -99 ".fromJson(int32) == -99
+  doAssert " -99 ".fromJson(int64) == -99
+
+  doAssert " +99 ".fromJson(int8) == 99
+  doAssert " +99 ".fromJson(int16) == 99
+  doAssert " +99 ".fromJson(int32) == 99
+  doAssert " +99 ".fromJson(int64) == 99
+
+  doAssert " 1.25 ".fromJson(float32) == 1.25
+  doAssert " 1.25 ".fromJson(float32) == 1.25
+  doAssert " +1.25 ".fromJson(float64) == 1.25
+  doAssert " +1.25 ".fromJson(float64) == 1.25
+  doAssert " -1.25 ".fromJson(float64) == -1.25
+  doAssert " -1.25 ".fromJson(float64) == -1.25
+
+  doAssert " 1.34E3 ".fromJson(float32) == 1.34E3
+  doAssert " 1.34E3 ".fromJson(float32) == 1.34E3
+  doAssert " +1.34E3 ".fromJson(float64) == 1.34E3
+  doAssert " +1.34E3 ".fromJson(float64) == 1.34E3
+  doAssert " -1.34E3 ".fromJson(float64) == -1.34E3
+  doAssert " -1.34E3 ".fromJson(float64) == -1.34E3
+
+block:
+  doAssert "[1, 2, 3]".fromJson(seq[int]) == @[1, 2, 3]
+  doAssert """["hi", "bye", "maybe"]""".fromJson(seq[string]) ==
+    @["hi", "bye", "maybe"]
+  doAssert """[["hi", "bye"], ["maybe"], []]""".fromJson(seq[seq[string]]) ==
+    @[@["hi", "bye"], @["maybe"], @[]]
+
+when not defined(js):
+  doAssertRaises JsonyError:
+    var
+      s = ""
+      i = 0
+      n: uint64
+    parseHook(s, i, n)
+
+for i in 0 .. 10000:
+  var s = ""
+  dumpHook(s, i)
+  doAssert $i == s
+
+for i in 0 .. 10000:
+  var s = $i
+  var idx = 0
+  var v: int
+  parseHook(s, idx, v)
+  doAssert i == v
+
+# Test json-in-json.
+
+block:
+  type Entry = object
+    name: string
+    data: JsonNode
+
+  var entry = Entry()
+  entry.name = "json-in-json"
+  entry.data = %*{
+    "random-data": "here",
+    "number": 123,
+    "number2": 123.456,
+    "array": @[1, 2, 3],
+    "active": true,
+    "null": nil
+  }
+
+  doAssert entry.toJson() == """{"name":"json-in-json","data":{"random-data":"here","number":123,"number2":123.456,"array":[1,2,3],"active":true,"null":null}}"""
+  doAssert $entry.toJson.fromJson(Entry) == """(name: "json-in-json", data: {"random-data":"here","number":123,"number2":123.456,"array":[1,2,3],"active":true,"null":null})"""
+
+  let s = """{"name":"json-in-json","data":{"random-data":"here","number":123,"number2":123.456,"array":[1,2,3],"active":true,"null":null}}"""
+  doAssert $s.fromJson() == """{"name":"json-in-json","data":{"random-data":"here","number":123,"number2":123.456,"array":[1,2,3],"active":true,"null":null}}"""
+
+  let ns = """[123, +123, -123, 123.456, +123.456, -123.456, 123.456E9, +123.456E9, -123.456E9]"""
+  doAssert $ns.fromJson() == """[123,123,-123,123.456,123.456,-123.456,123456000000.0,123456000000.0,-123456000000.0]"""
+
+# Test objects.
 
 block:
   type Entry1 = object
@@ -267,3 +440,98 @@ block:
   doAssert a.kind == nkFloat
   doAssert b.kind == nkFloat
   doAssert c.kind == nkFloat
+
+# Test options.
+
+var
+  a: Option[int] = some(123)
+  b: Option[int]
+
+doAssert a.toJson() == """123"""
+doAssert b.toJson() == """null"""
+
+doAssert $("""1""".fromJson(Option[int])) == "Some(1)"
+doAssert $("""null""".fromJson(Option[int])) == "None[int]"
+
+proc check[T](v: T) =
+  var v2 = some(v)
+  var v3 = none(type(v))
+  doAssert v2.toJson.fromJson(Option[T]) == v2
+  doAssert v3.toJson.fromJson(Option[T]) == v3
+
+check(1.int)
+check(1.int8)
+check(1.int16)
+check(1.int32)
+check(1.int64)
+check(1.uint8)
+check(1.uint16)
+check(1.uint32)
+check(1.uint64)
+
+check("hello")
+check([1,2,3])
+check(@[1,2,3])
+
+type Entry = object
+  color: string
+
+check(Entry())
+
+type
+  Test = object
+    key: Option[int]
+var test = """{ "key": null }""".fromJson(Test)
+doAssert test.key.isNone == true
+var test2 = """{ "key": 2 }""".fromJson(Test)
+doAssert test2.key.isNone == false
+doAssert test2.key.get == 2
+
+# Test parseHook.
+
+type Fraction = object
+  numerator: int
+  denominator: int
+
+proc parseHook(s: string, i: var int, v: var Fraction) =
+  ## Instead of looking for fraction object look for a string.
+  var str: string
+  parseHook(s, i, str)
+  let arr = str.split("/")
+  v = Fraction()
+  v.numerator = parseInt(arr[0])
+  v.denominator = parseInt(arr[1])
+
+var frac = """ "1/3" """.fromJson(Fraction)
+doAssert frac.numerator == 1
+doAssert frac.denominator == 3
+
+proc parseHook(s: string, i: var int, v: var DateTime) =
+  var str: string
+  parseHook(s, i, str)
+  v = parse(str, "yyyy-MM-dd hh:mm:ss")
+
+var dt = """ "2020-01-01 00:00:00" """.fromJson(DateTime)
+doAssert dt.year == 2020
+
+type FillEntry = object
+  id: string
+  count: int
+  filled: int
+
+let data = """{
+  "1": {"count":12, "filled": 11},
+  "2": {"count":66, "filled": 0},
+  "3": {"count":99, "filled": 99}
+}"""
+
+proc parseHook(s: string, i: var int, v: var seq[FillEntry]) =
+  var table: Table[string, FillEntry]
+  parseHook(s, i, table)
+  for k, entry in table.mpairs:
+    entry.id = k
+    v.add(entry)
+
+let s2 = data.fromJson(seq[FillEntry])
+doAssert type(s2) is seq[FillEntry]
+doAssert $s2 == """@[(id: "1", count: 12, filled: 11), (id: "2", count: 66, filled: 0), (id: "3", count: 99, filled: 99)]"""

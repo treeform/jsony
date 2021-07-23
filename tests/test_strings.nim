@@ -24,3 +24,8 @@ block:
   var s = """ "unicode: \u0020 \u0F88 \u1F21" """
   var v = s.fromJson(string)
   doAssert v == "unicode: \u0020 \u0F88 \u1F21"
+
+block:
+  var s = """ "hello" """ & ""
+  var v = s.fromJson(string)
+  doAssert v == "hello"

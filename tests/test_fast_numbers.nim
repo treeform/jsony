@@ -1,11 +1,12 @@
 import jsony
 
-doAssertRaises JsonError:
-  var
-    s = ""
-    i = 0
-    n: uint64
-  parseHook(s, i, n)
+when not defined(js):
+  doAssertRaises JsonError:
+    var
+      s = ""
+      i = 0
+      n: uint64
+    parseHook(s, i, n)
 
 for i in 0 .. 10000:
   var s = ""

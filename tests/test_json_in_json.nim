@@ -1,4 +1,4 @@
-import jsony, strutils, json
+import jsony, json
 
 block:
   type Entry = object

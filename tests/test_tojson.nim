@@ -11,8 +11,10 @@ doAssert 1.int8.toJson() == "1"
 doAssert 1.int16.toJson() == "1"
 doAssert 1.int32.toJson() == "1"
 doAssert 1.int64.toJson() == "1"
-doAssert 3.14.float32.toJson() == "3.140000104904175"
-doAssert 3.14.float64.toJson() == "3.14"
+
+when not defined(js):
+  doAssert 3.14.float32.toJson() == "3.140000104904175"
+  doAssert 3.14.float64.toJson() == "3.14"
 
 match 1
 match 3.14.float32

@@ -1,4 +1,4 @@
-import jsony, strutils, tables, times
+import jsony, strutils, tables
 
 type Fraction = object
   numerator: int
@@ -17,13 +17,15 @@ var frac = """ "1/3" """.fromJson(Fraction)
 doAssert frac.numerator == 1
 doAssert frac.denominator == 3
 
-proc parseHook(s: string, i: var int, v: var DateTime) =
-  var str: string
-  parseHook(s, i, str)
-  v = parse(str, "yyyy-MM-dd hh:mm:ss")
+when not defined(js):
+  import times
+  proc parseHook(s: string, i: var int, v: var DateTime) =
+    var str: string
+    parseHook(s, i, str)
+    v = parse(str, "yyyy-MM-dd hh:mm:ss")
 
-var dt = """ "2020-01-01 00:00:00" """.fromJson(DateTime)
-doAssert dt.year == 2020
+  var dt = """ "2020-01-01 00:00:00" """.fromJson(DateTime)
+  doAssert dt.year == 2020
 
 type Entry = object
   id: string
