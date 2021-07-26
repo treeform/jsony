@@ -174,6 +174,8 @@ Json can't store dates, so they are usually stored as strings. You can use
 `parseHook*()` to override default parsing and parse `DateTime` as a `string`:
 
 ```nim
+import jsony, times
+
 proc parseHook*(s: string, i: var int, v: var DateTime) =
   var str: string
   parseHook(s, i, str)
@@ -270,6 +272,8 @@ Some times your json objects could contain arbitrary json structures,
 maybe event user defined, that could only be walked as json nodes. This library allows you to parse json-in-json were you parse some of the structure as real nim objects but leave some parts of it as Json Nodes to be walked later with code:
 
 ```nim
+import jsony, json
+
 type Entry = object
   name: string
   data: JsonNode
