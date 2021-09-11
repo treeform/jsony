@@ -124,7 +124,7 @@ proc parseHook*(s: string, i: var int, v: var SomeFloat) =
   eatSpace(s, i)
   let chars = parseutils.parseFloat(s, f, i)
   if chars == 0:
-     error("Failed to parse a float.", i)
+    error("Failed to parse a float.", i)
   i += chars
   v = f
 
