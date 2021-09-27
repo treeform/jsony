@@ -768,37 +768,40 @@ proc dumpHook*[T](s: var string, v: HashSet[T]|OrderedSet[T]) =
 
 proc dumpHook*(s: var string, v: JsonNode) =
   ## Dumps a regular json node.
-  case v.kind:
-  of JObject:
-    s.add '{'
-    var i = 0
-    for k, e in v.pairs:
-      if i != 0:
-        s.add ","
-      s.dumpHook(k)
-      s.add ':'
-      s.dumpHook(e)
-      inc i
-    s.add '}'
-  of JArray:
-    s.add '['
-    var i = 0
-    for e in v:
-      if i != 0:
-        s.add ","
-      s.dumpHook(e)
-      inc i
-    s.add ']'
-  of JNull:
+  if v == nil:
     s.add "null"
-  of JInt:
-    s.dumpHook(v.getInt)
-  of JFloat:
-    s.dumpHook(v.getFloat)
-  of JString:
-    s.dumpHook(v.getStr)
-  of JBool:
-    s.dumpHook(v.getBool)
+  else:
+    case v.kind:
+    of JObject:
+      s.add '{'
+      var i = 0
+      for k, e in v.pairs:
+        if i != 0:
+          s.add ","
+        s.dumpHook(k)
+        s.add ':'
+        s.dumpHook(e)
+        inc i
+      s.add '}'
+    of JArray:
+      s.add '['
+      var i = 0
+      for e in v:
+        if i != 0:
+          s.add ","
+        s.dumpHook(e)
+        inc i
+      s.add ']'
+    of JNull:
+      s.add "null"
+    of JInt:
+      s.dumpHook(v.getInt)
+    of JFloat:
+      s.dumpHook(v.getFloat)
+    of JString:
+      s.dumpHook(v.getStr)
+    of JBool:
+      s.dumpHook(v.getBool)
 
 proc toJson*[T](v: T): string =
   dumpHook(result, v)
