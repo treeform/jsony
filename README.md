@@ -1,21 +1,23 @@
 # JSONy - A loose, direct to object json parser and serializer with hooks.
 
-Pure nim module with no other dependencies.
-
-![Github Actions](https://github.com/treeform/vmath/workflows/Github%20Actions/badge.svg)
-
 `nimble install jsony`
 
-Check out the [Api Reference](https://nimdocs.com/treeform/jsony/jsony.html).
+![Github Actions](https://github.com/treeform/jsony/workflows/Github%20Actions/badge.svg)
+
+[API reference](https://nimdocs.com/treeform/jsony)
+
+This library has no dependencies other than the Nim standard libarary.
+
+## About
+
+Real world json is *never what you want*. It might have extra fields that you don't care about. It might have missing fields requiring default values. It might change or grow new fields at any moment. Json might use `camelCase` or `snake_case`. It might use inconsistent naming.
+
+With this library you can use json your way, from the mess you get to the objects you want.
 
 ```nim
 @[1, 2, 3].toJson() -> "[1,2,3]"
 "[1,2,3]".fromJson(seq[int]) -> @[1, 2, 3]
 ```
-
-Real world json is *never what you want*. It might have extra fields that you don't care about. It might have missing fields requiring default values. It might change or grow new fields at any moment. Json might use `camelCase` or `snake_case`. It might use inconsistent naming.
-
-With this library you can use json your way, from the mess you get to the objects you want.
 
 ## Fast.
 
