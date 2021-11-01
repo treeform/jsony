@@ -550,6 +550,7 @@ proc fromJson*(s: string): JsonNode =
 proc dumpHook*(s: var string, v: bool)
 proc dumpHook*(s: var string, v: uint|uint8|uint16|uint32|uint64)
 proc dumpHook*(s: var string, v: int|int8|int16|int32|int64)
+proc dumpHook*(s: var string, v: SomeFloat)
 proc dumpHook*(s: var string, v: string)
 proc dumpHook*(s: var string, v: char)
 proc dumpHook*(s: var string, v: tuple)

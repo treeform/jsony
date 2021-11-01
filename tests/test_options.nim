@@ -7,8 +7,8 @@ var
 doAssert a.toJson() == """123"""
 doAssert b.toJson() == """null"""
 
-doAssert $("""1""".fromJson(Option[int])) == "Some(1)"
-doAssert $("""null""".fromJson(Option[int])) == "None[int]"
+doAssert $("""1""".fromJson(Option[int])) == "some(1)"
+doAssert $("""null""".fromJson(Option[int])) == "none(int)"
 
 proc check[T](v: T) =
   var v2 = some(v)
