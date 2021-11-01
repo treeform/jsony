@@ -6,7 +6,7 @@
 
 [API reference](https://nimdocs.com/treeform/jsony)
 
-This library has no dependencies other than the Nim standard libarary.
+This library has no dependencies other than the Nim standard library.
 
 ## About
 
