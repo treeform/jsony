@@ -110,7 +110,7 @@ proc newHook*(foo: var Foo5) =
   foo.visible = "yes"
 
 var s = """{"id":"123"}"""
-var v = s.fromJson(s)
+var v = s.fromJson(Foo5)
 doAssert v.id == "123"
 doAssert v.visible == "yes"
 ```
