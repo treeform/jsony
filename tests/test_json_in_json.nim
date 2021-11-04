@@ -31,5 +31,4 @@ block:
 block:
   # https://github.com/treeform/jsony/issues/30
   let s = r"""[9e-8]"""
-  echo fromJson(s)
-  doAssert $fromJson(s) == "[9e-008]"
+  doAssert fromJson(s)[0].getFloat() == 9e-8
