@@ -27,3 +27,9 @@ block:
 
   var foo = Entry()
   doAssert toJson(foo) == """{"name":"","data":null}"""
+
+block:
+  # https://github.com/treeform/jsony/issues/30
+  let s = r"""[9e-8]"""
+  echo fromJson(s)
+  doAssert $fromJson(s) == "[9e-008]"

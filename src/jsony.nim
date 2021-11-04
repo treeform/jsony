@@ -127,6 +127,7 @@ proc parseHook*(s: string, i: var int, v: var SomeFloat) =
   eatSpace(s, i)
   let chars = parseutils.parseFloat(s, f, i)
   if chars == 0:
+    echo s[i - 10 .. i + 10]
     error("Failed to parse a float.", i)
   i += chars
   v = f
@@ -516,16 +517,13 @@ proc parseHook*(s: string, i: var int, v: var JsonNode) =
     elif data == "false":
       v = newJBool(false)
     elif data.len > 0 and data[0] in {'0'..'9', '-', '+'}:
-      if "." in data:
+      try:
+        v = newJInt(parseInt(data))
+      except ValueError:
         try:
           v = newJFloat(parseFloat(data))
         except ValueError:
-          error("Invalid integer.", i)
-      else:
-        try:
-          v = newJInt(parseInt(data))
-        except ValueError:
-          error("Invalid float.", i)
+          error("Invalid number.", i)
     else:
       error("Unexpected.", i)
 

@@ -43,6 +43,8 @@ block:
   doAssert " -1.34E3 ".fromJson(float64) == -1.34E3
   doAssert " -1.34E3 ".fromJson(float64) == -1.34E3
 
+  doAssert "9e-8".fromJson(float64) == 9e-8
+
 block:
   doAssert "[1, 2, 3]".fromJson(seq[int]) == @[1, 2, 3]
   doAssert """["hi", "bye", "maybe"]""".fromJson(seq[string]) ==
