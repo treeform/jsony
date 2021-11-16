@@ -11,13 +11,11 @@ type
   SomeTable*[K, V] = Table[K, V] | OrderedTable[K, V] |
     TableRef[K, V] | OrderedTableRef[K, V]
 
-  SomeSet*[A] = HashSet[A] | OrderedSet[A] | set[A]
-
 proc parseHook*[T](s: string, i: var int, v: var seq[T])
 proc parseHook*[T: enum](s: string, i: var int, v: var T)
 proc parseHook*[T: object|ref object](s: string, i: var int, v: var T)
 proc parseHook*[T](s: string, i: var int, v: var SomeTable[string, T])
-proc parseHook*[T](s: string, i: var int, v: var SomeSet[T])
+proc parseHook*[T](s: string, i: var int, v: var (SomeSet[T]|set[T]))
 proc parseHook*[T: tuple](s: string, i: var int, v: var T)
 proc parseHook*[T: array](s: string, i: var int, v: var T)
 proc parseHook*[T: not object](s: string, i: var int, v: var ref T)
@@ -453,8 +451,8 @@ proc parseHook*[T](s: string, i: var int, v: var SomeTable[string, T]) =
       break
   eatChar(s, i, '}')
 
-proc parseHook*[T](s: string, i: var int, v: var SomeSet[T]) =
-  ## Parse a set type.
+proc parseHook*[T](s: string, i: var int, v: var (SomeSet[T]|set[T])) =
+  ## Parses `HashSet`, `OrderedSet`, or a built-in `set` type.
   eatSpace(s, i)
   eatChar(s, i, '[')
   while true:
@@ -757,7 +755,7 @@ proc dumpHook*(s: var string, v: ref) =
   else:
     s.dumpHook(v[])
 
-proc dumpHook*[T](s: var string, v: SomeSet[T]) =
+proc dumpHook*[T](s: var string, v: SomeSet[T]|set[T]) =
   s.add '['
   var i = 0
   for e in v:
