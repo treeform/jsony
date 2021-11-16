@@ -550,6 +550,8 @@ proc dumpHook*(s: var string, v: string)
 proc dumpHook*(s: var string, v: char)
 proc dumpHook*(s: var string, v: tuple)
 proc dumpHook*(s: var string, v: enum)
+type t[T] = tuple[a:string, b:T]
+proc dumpHook*[N, T](s: var string, v: array[N, t[T]])
 proc dumpHook*[N, T](s: var string, v: array[N, T])
 proc dumpHook*[T](s: var string, v: seq[T])
 proc dumpHook*(s: var string, v: object)
@@ -747,6 +749,19 @@ proc dumpHook*(s: var string, v: object) =
       s.dumpKey(k)
       s.dumpHook(e)
       inc i
+  s.add '}'
+
+proc dumpHook*[N, T](s: var string, v: array[N, t[T]]) =
+  s.add '{'
+  var i = 0
+  # Normal objects.
+  for (k, e) in v:
+    if i > 0:
+      s.add ','
+    s.dumpHook(k)
+    s.add ':'
+    s.dumpHook(e)
+    inc i
   s.add '}'
 
 proc dumpHook*(s: var string, v: ref) =

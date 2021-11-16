@@ -47,3 +47,13 @@ block:
   doAssert v["a"].color == "red"
   doAssert v["b"].color == "green"
   doAssert v["c"].color == "blue"
+
+block:
+  doAssert {"j":10,"s":20,"o":100,"n":5000}.toJson() ==
+    """{"j":10,"s":20,"o":100,"n":5000}"""
+
+  doAssert {"j":"a","s":"b","o":"c","n":"d"}.toJson() ==
+    """{"j":"a","s":"b","o":"c","n":"d"}"""
+
+  doAssert [{"j":"a"}].toJson() ==
+    """[{"j":"a"}]"""
