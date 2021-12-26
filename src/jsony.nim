@@ -260,17 +260,6 @@ proc parseHook*[T](s: string, i: var int, v: var seq[T]) =
       break
   eatChar(s, i, ']')
 
-proc parseHook*[T: tuple](s: string, i: var int, v: var T) =
-  eatSpace(s, i)
-  eatChar(s, i, '[')
-  for name, value in v.fieldPairs:
-    eatSpace(s, i)
-    parseHook(s, i, value)
-    eatSpace(s, i)
-    if i < s.len and s[i] == ',':
-      inc i
-  eatChar(s, i, ']')
-
 proc parseHook*[T: array](s: string, i: var int, v: var T) =
   eatSpace(s, i)
   eatChar(s, i, '[')
@@ -340,6 +329,46 @@ proc snakeCaseDynamic(s: string): string =
 template snakeCase(s: string): string =
   const k = snakeCaseDynamic(s)
   k
+
+proc parseObject[T](s: string, i: var int, v: var T) =
+  eatChar(s, i, '{')
+  while i < s.len:
+    eatSpace(s, i)
+    if i < s.len and s[i] == '}':
+      break
+    var key: string
+    parseHook(s, i, key)
+    eatChar(s, i, ':')
+    when compiles(renameHook(v, key)):
+      renameHook(v, key)
+    block all:
+      for k, v in v.fieldPairs:
+        if k == key or snakeCase(k) == key:
+          var v2: type(v)
+          parseHook(s, i, v2)
+          v = v2
+          break all
+      skipValue(s, i)
+    eatSpace(s, i)
+    if i < s.len and s[i] == ',':
+      inc i
+    else:
+      break
+
+proc parseHook*[T: tuple](s: string, i: var int, v: var T) =
+  eatSpace(s, i)
+  when T.isNamedTuple():
+    if i < s.len and s[i] == '{':
+      parseObject(s, i, v)
+      return
+  eatChar(s, i, '[')
+  for name, value in v.fieldPairs:
+    eatSpace(s, i)
+    parseHook(s, i, value)
+    eatSpace(s, i)
+    if i < s.len and s[i] == ',':
+      inc i
+  eatChar(s, i, ']')
 
 proc parseHook*[T: enum](s: string, i: var int, v: var T) =
   eatSpace(s, i)
