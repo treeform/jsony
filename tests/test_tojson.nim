@@ -71,13 +71,13 @@ type Fraction = object
   numerator: int
   denominator: int
 
-proc dumpHook(s: var string, v: Fraction) =
+proc dumpHook(ctx: JsonyContext, v: Fraction) =
   ## Output fraction type as a string "x/y".
-  s.add '"'
-  s.add $v.numerator
-  s.add '/'
-  s.add $v.denominator
-  s.add '"'
+  ctx.data.add '"'
+  ctx.data.add $v.numerator
+  ctx.data.add '/'
+  ctx.data.add $v.denominator
+  ctx.data.add '"'
 
 var f = Fraction(numerator: 10, denominator: 13)
 doAssert f.toJson() == "\"10/13\""

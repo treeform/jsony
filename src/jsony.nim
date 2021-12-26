@@ -577,31 +577,31 @@ proc fromJson*(s: string): JsonNode =
 
 
 
-proc dumpHook*(s: var string, v: bool)
-proc dumpHook*(s: var string, v: uint|uint8|uint16|uint32|uint64)
-proc dumpHook*(s: var string, v: int|int8|int16|int32|int64)
-proc dumpHook*(s: var string, v: SomeFloat)
-proc dumpHook*(s: var string, v: string)
-proc dumpHook*(s: var string, v: char)
-proc dumpHook*(s: var string, v: tuple)
-proc dumpHook*(s: var string, v: enum)
+proc dumpHook*(ctx: JsonyContext, v: bool)
+proc dumpHook*(ctx: JsonyContext, v: uint|uint8|uint16|uint32|uint64)
+proc dumpHook*(ctx: JsonyContext, v: int|int8|int16|int32|int64)
+proc dumpHook*(ctx: JsonyContext, v: SomeFloat)
+proc dumpHook*(ctx: JsonyContext, v: string)
+proc dumpHook*(ctx: JsonyContext, v: char)
+proc dumpHook*(ctx: JsonyContext, v: tuple)
+proc dumpHook*(ctx: JsonyContext, v: enum)
 type t[T] = tuple[a:string, b:T]
-proc dumpHook*[N, T](s: var string, v: array[N, t[T]])
-proc dumpHook*[N, T](s: var string, v: array[N, T])
-proc dumpHook*[T](s: var string, v: seq[T])
-proc dumpHook*(s: var string, v: object)
-proc dumpHook*(s: var string, v: ref)
-proc dumpHook*[T: distinct](s: var string, v: T)
+proc dumpHook*[N, T](ctx: JsonyContext, v: array[N, t[T]])
+proc dumpHook*[N, T](ctx: JsonyContext, v: array[N, T])
+proc dumpHook*[T](ctx: JsonyContext, v: seq[T])
+proc dumpHook*(ctx: JsonyContext, v: object)
+proc dumpHook*(ctx: JsonyContext, v: ref)
+proc dumpHook*[T: distinct](ctx: JsonyContext, v: T)
 
-proc dumpHook*[T: distinct](s: var string, v: T) =
+proc dumpHook*[T: distinct](ctx: JsonyContext, v: T) =
   var x = cast[T.distinctBase](v)
-  s.dumpHook(x)
+  ctx.dumpHook(x)
 
-proc dumpHook*(s: var string, v: bool) =
+proc dumpHook*(ctx: JsonyContext, v: bool) =
   if v:
-    s.add "true"
+    ctx.data.add "true"
   else:
-    s.add "false"
+    ctx.data.add "false"
 
 const lookup = block:
   ## Generate 00, 01, 02 ... 99 pairs.
@@ -612,14 +612,14 @@ const lookup = block:
     s.add($i)
   s
 
-proc dumpNumberSlow(s: var string, v: uint|uint8|uint16|uint32|uint64) =
-  s.add $v.uint64
+proc dumpNumberSlow(ctx: JsonyContext, v: uint|uint8|uint16|uint32|uint64) =
+  ctx.data.add $v.uint64
 
-proc dumpNumberFast(s: var string, v: uint|uint8|uint16|uint32|uint64) =
+proc dumpNumberFast(ctx: JsonyContext, v: uint|uint8|uint16|uint32|uint64) =
   # Its faster to not allocate a string for a number,
   # but to write it out the digits directly.
   if v == 0:
-    s.add '0'
+    ctx.data.add '0'
     return
   # Max size of a uin64 number is 20 digits.
   var digits: array[20, char]
@@ -633,58 +633,58 @@ proc dumpNumberFast(s: var string, v: uint|uint8|uint16|uint32|uint64) =
     digits[p] = lookup[idx*2]
     inc p
     v = v div 100
-  var at = s.len
+  var at = ctx.data.len
   if digits[p-1] == '0':
     dec p
-  s.setLen(s.len + p)
+  ctx.data.setLen(ctx.data.len + p)
   dec p
   while p >= 0:
-    s[at] = digits[p]
+    ctx.data[at] = digits[p]
     dec p
     inc at
 
-proc dumpHook*(s: var string, v: uint|uint8|uint16|uint32|uint64) =
+proc dumpHook*(ctx: JsonyContext, v: uint|uint8|uint16|uint32|uint64) =
   when nimvm:
-    s.dumpNumberSlow(v)
+    ctx.dumpNumberSlow(v)
   else:
     when defined(js):
-      s.dumpNumberSlow(v)
+      ctx.dumpNumberSlow(v)
     else:
-      s.dumpNumberFast(v)
+      ctx.dumpNumberFast(v)
 
-proc dumpHook*(s: var string, v: int|int8|int16|int32|int64) =
+proc dumpHook*(ctx: JsonyContext, v: int|int8|int16|int32|int64) =
   if v < 0:
-    s.add '-'
-    dumpHook(s, 0.uint64 - v.uint64)
+    ctx.data.add '-'
+    ctx.dumpHook( 0.uint64 - v.uint64)
   else:
-    dumpHook(s, v.uint64)
+    ctx.dumpHook(v.uint64)
 
-proc dumpHook*(s: var string, v: SomeFloat) =
-  s.add $v
+proc dumpHook*(ctx: JsonyContext, v: SomeFloat) =
+  ctx.data.add $v
 
-proc dumpStrSlow(s: var string, v: string) =
-  s.add '"'
+proc dumpStrSlow(ctx: JsonyContext, v: string) =
+  ctx.data.add '"'
   for c in v:
     case c:
-    of '\\': s.add r"\\"
-    of '\b': s.add r"\b"
-    of '\f': s.add r"\f"
-    of '\n': s.add r"\n"
-    of '\r': s.add r"\r"
-    of '\t': s.add r"\t"
-    of '"': s.add r"\"""
+    of '\\': ctx.data.add r"\\"
+    of '\b': ctx.data.add r"\b"
+    of '\f': ctx.data.add r"\f"
+    of '\n': ctx.data.add r"\n"
+    of '\r': ctx.data.add r"\r"
+    of '\t': ctx.data.add r"\t"
+    of '"': ctx.data.add r"\"""
     else:
-      s.add c
-  s.add '"'
+      ctx.data.add c
+  ctx.data.add '"'
 
-proc dumpStrFast(s: var string, v: string) =
+proc dumpStrFast(ctx: JsonyContext, v: string) =
   # Its faster to grow the string only once.
   # Then fill the string with pointers.
   # Then cap it off to right length.
-  var at = s.len
-  s.setLen(s.len + v.len*2+2)
+  var at = ctx.data.len
+  ctx.data.setLen(ctx.data.len + v.len*2+2)
 
-  var ss = cast[ptr UncheckedArray[char]](s[0].addr)
+  var ss = cast[ptr UncheckedArray[char]](ctx.data[0].addr)
   template add(ss: ptr UncheckedArray[char], c: char) =
     ss[at] = c
     inc at
@@ -707,153 +707,155 @@ proc dumpStrFast(s: var string, v: string) =
     else:
       ss.add c
   ss.add '"'
-  s.setLen(at)
+  ctx.data.setLen(at)
 
-proc dumpHook*(s: var string, v: string) =
+proc dumpHook*(ctx: JsonyContext, v: string) =
   when nimvm:
-    s.dumpStrSlow(v)
+    ctx.dumpStrSlow(v)
   else:
     when defined(js):
-      s.dumpStrSlow(v)
+      ctx.dumpStrSlow(v)
     else:
-      s.dumpStrFast(v)
+      ctx.dumpStrFast(v)
 
-template dumpKey(s: var string, v: string) =
+template dumpKey(ctx: JsonyContext, v: string) =
   const v2 = v.toJson() & ":"
-  s.add v2
+  ctx.data.add v2
 
-proc dumpHook*(s: var string, v: char) =
-  s.add '"'
-  s.add v
-  s.add '"'
+proc dumpHook*(ctx: JsonyContext, v: char) =
+  ctx.data.add '"'
+  ctx.data.add v
+  ctx.data.add '"'
 
-proc dumpHook*(s: var string, v: tuple) =
-  s.add '['
+proc dumpHook*(ctx: JsonyContext, v: tuple) =
+  ctx.data.add '['
   var i = 0
   for _, e in v.fieldPairs:
     if i > 0:
-      s.add ','
-    s.dumpHook(e)
+      ctx.data.add ','
+    ctx.dumpHook(e)
     inc i
-  s.add ']'
+  ctx.data.add ']'
 
-proc dumpHook*(s: var string, v: enum) =
-  s.dumpHook($v)
+proc dumpHook*(ctx: JsonyContext, v: enum) =
+  ctx.dumpHook($v)
 
-proc dumpHook*[N, T](s: var string, v: array[N, T]) =
-  s.add '['
+proc dumpHook*[N, T](ctx: JsonyContext, v: array[N, T]) =
+  ctx.data.add '['
   var i = 0
   for e in v:
     if i != 0:
-      s.add ','
-    s.dumpHook(e)
+      ctx.data.add ','
+    ctx.dumpHook(e)
     inc i
-  s.add ']'
+  ctx.data.add ']'
 
-proc dumpHook*[T](s: var string, v: seq[T]) =
-  s.add '['
+proc dumpHook*[T](ctx: JsonyContext, v: seq[T]) =
+  ctx.data.add '['
   for i, e in v:
     if i != 0:
-      s.add ','
-    s.dumpHook(e)
-  s.add ']'
+      ctx.data.add ','
+    ctx.dumpHook(e)
+  ctx.data.add ']'
 
-proc dumpHook*[T](s: var string, v: Option[T]) =
+proc dumpHook*[T](ctx: JsonyContext, v: Option[T]) =
   if v.isNone:
-    s.add "null"
+    ctx.data.add "null"
   else:
-    s.dumpHook(v.get())
+    ctx.dumpHook(v.get())
 
-proc dumpHook*(s: var string, v: object) =
-  s.add '{'
+proc dumpHook*(ctx: JsonyContext, v: object) =
+  ctx.data.add '{'
   var i = 0
   when compiles(for k, e in v.pairs: discard):
     # Tables and table like objects.
     for k, e in v.pairs:
       if i > 0:
-        s.add ','
-      s.dumpHook(k)
-      s.add ':'
-      s.dumpHook(e)
+        ctx.data.add ','
+      ctx.dumpHook(k)
+      ctx.data.add ':'
+      ctx.dumpHook(e)
       inc i
   else:
     # Normal objects.
     for k, e in v.fieldPairs:
       if i > 0:
-        s.add ','
-      s.dumpKey(k)
-      s.dumpHook(e)
+        ctx.data.add ','
+      ctx.dumpKey(k)
+      ctx.dumpHook(e)
       inc i
-  s.add '}'
+  ctx.data.add '}'
 
-proc dumpHook*[N, T](s: var string, v: array[N, t[T]]) =
-  s.add '{'
+proc dumpHook*[N, T](ctx: JsonyContext, v: array[N, t[T]]) =
+  ctx.data.add '{'
   var i = 0
   # Normal objects.
   for (k, e) in v:
     if i > 0:
-      s.add ','
-    s.dumpHook(k)
-    s.add ':'
-    s.dumpHook(e)
+      ctx.data.add ','
+    ctx.dumpHook(k)
+    ctx.data.add ':'
+    ctx.dumpHook(e)
     inc i
-  s.add '}'
+  ctx.data.add '}'
 
-proc dumpHook*(s: var string, v: ref) =
+proc dumpHook*(ctx: JsonyContext, v: ref) =
   if v == nil:
-    s.add "null"
+    ctx.data.add "null"
   else:
-    s.dumpHook(v[])
+    ctx.dumpHook(v[])
 
-proc dumpHook*[T](s: var string, v: SomeSet[T]|set[T]) =
-  s.add '['
+proc dumpHook*[T](ctx: JsonyContext, v: SomeSet[T]|set[T]) =
+  ctx.data.add '['
   var i = 0
   for e in v:
     if i != 0:
-      s.add ','
-    s.dumpHook(e)
+      ctx.data.add ','
+    ctx.dumpHook(e)
     inc i
-  s.add ']'
+  ctx.data.add ']'
 
-proc dumpHook*(s: var string, v: JsonNode) =
+proc dumpHook*(ctx: JsonyContext, v: JsonNode) =
   ## Dumps a regular json node.
   if v == nil:
-    s.add "null"
+    ctx.data.add "null"
   else:
     case v.kind:
     of JObject:
-      s.add '{'
+      ctx.data.add '{'
       var i = 0
       for k, e in v.pairs:
         if i != 0:
-          s.add ","
-        s.dumpHook(k)
-        s.add ':'
-        s.dumpHook(e)
+          ctx.data.add ","
+        ctx.dumpHook(k)
+        ctx.data.add ':'
+        ctx.dumpHook(e)
         inc i
-      s.add '}'
+      ctx.data.add '}'
     of JArray:
-      s.add '['
+      ctx.data.add '['
       var i = 0
       for e in v:
         if i != 0:
-          s.add ","
-        s.dumpHook(e)
+          ctx.data.add ","
+        ctx.dumpHook(e)
         inc i
-      s.add ']'
+      ctx.data.add ']'
     of JNull:
-      s.add "null"
+      ctx.data.add "null"
     of JInt:
-      s.dumpHook(v.getInt)
+      ctx.dumpHook(v.getInt)
     of JFloat:
-      s.dumpHook(v.getFloat)
+      ctx.dumpHook(v.getFloat)
     of JString:
-      s.dumpHook(v.getStr)
+      ctx.dumpHook(v.getStr)
     of JBool:
-      s.dumpHook(v.getBool)
+      ctx.dumpHook(v.getBool)
 
 proc toJson*[T](v: T): string =
-  dumpHook(result, v)
+  let ctx = JsonyContext()
+  ctx.dumpHook(v)
+  ctx.data
 
 template toStaticJson*(v: untyped): static[string] =
   ## This will turn v into json at compile time and return the json string.
