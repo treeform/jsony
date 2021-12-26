@@ -4,10 +4,10 @@ type Fraction = object
   numerator: int
   denominator: int
 
-proc parseHook(ctx: JsonyContext, v: var Fraction) =
+proc parseHook(jx: JsonyContext, v: var Fraction) =
   ## Instead of looking for fraction object look for a string.
   var str: string
-  ctx.parseHook(str)
+  jx.parseHook(str)
   let arr = str.split("/")
   v = Fraction()
   v.numerator = parseInt(arr[0])
@@ -17,9 +17,9 @@ var frac = """ "1/3" """.fromJson(Fraction)
 doAssert frac.numerator == 1
 doAssert frac.denominator == 3
 
-proc parseHook(ctx: JsonyContext, v: var DateTime) =
+proc parseHook(jx: JsonyContext, v: var DateTime) =
   var str: string
-  ctx.parseHook(str)
+  jx.parseHook(str)
   v = parse(str, "yyyy-MM-dd hh:mm:ss")
 
 var dt = """ "2020-01-01 00:00:00" """.fromJson(DateTime)
@@ -36,9 +36,9 @@ let data = """{
   "3": {"count":99, "filled": 99}
 }"""
 
-proc parseHook(ctx: JsonyContext, v: var seq[Entry]) =
+proc parseHook(jx: JsonyContext, v: var seq[Entry]) =
   var table: Table[string, Entry]
-  ctx.parseHook(table)
+  jx.parseHook(table)
   for k, entry in table.mpairs:
     entry.id = k
     v.add(entry)
