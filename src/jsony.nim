@@ -12,8 +12,13 @@ type
     TableRef[K, V] | OrderedTableRef[K, V]
 
   JsonyContext* = ref object
-    data*: string
-    i*: int
+    data*: string        ## Data being read or written.
+    i*: int              ## Index into the data being read.
+
+    # pretty: bool         ## Output with pretty indents.
+    # strictCase: bool     ## Case must match exactly.
+    # strictFields: bool   ## All fields must exist.
+    # noExtraFields: bool  ## There must be no extra fields.
 
 proc parseHook*[T](jx: JsonyContext, v: var seq[T])
 proc parseHook*[T: enum](jx: JsonyContext, v: var T)
@@ -77,12 +82,21 @@ proc parseHook*(jx: JsonyContext, v: var bool) =
   else:
     # Its faster to do char by char scan:
     jx.eatSpace()
-    if jx.i + 3 < jx.data.len and jx.data[jx.i+0] == 't' and jx.data[jx.i+1] == 'r' and jx.data[jx.i+2] == 'u' and jx.data[jx.i+3] == 'e':
-      jx.i += 4
-      v = true
-    elif jx.i + 4 < jx.data.len and jx.data[jx.i+0] == 'f' and jx.data[jx.i+1] == 'a' and jx.data[jx.i+2] == 'l' and jx.data[jx.i+3] == 's' and jx.data[jx.i+4] == 'e':
-      jx.i += 5
-      v = false
+    if jx.i + 3 < jx.data.len and
+      jx.data[jx.i+0] == 't' and
+      jx.data[jx.i+1] == 'r' and
+      jx.data[jx.i+2] == 'u' and
+      jx.data[jx.i+3] == 'e':
+        jx.i += 4
+        v = true
+    elif jx.i + 4 < jx.data.len and
+      jx.data[jx.i+0] == 'f' and
+      jx.data[jx.i+1] == 'a' and
+      jx.data[jx.i+2] == 'l' and
+      jx.data[jx.i+3] == 's' and
+      jx.data[jx.i+4] == 'e':
+        jx.i += 5
+        v = false
     else:
       error(jx, "Boolean true or false expected.")
 
@@ -227,9 +241,13 @@ proc parseStringFast(jx: JsonyContext, v: var string) =
 proc parseHook*(jx: JsonyContext, v: var string) =
   ## Parse string.
   jx.eatSpace()
-  if jx.i + 3 < jx.data.len and jx.data[jx.i+0] == 'n' and jx.data[jx.i+1] == 'u' and jx.data[jx.i+2] == 'l' and jx.data[jx.i+3] == 'l':
-    jx.i += 4
-    return
+  if jx.i + 3 < jx.data.len and
+    jx.data[jx.i+0] == 'n' and
+    jx.data[jx.i+1] == 'u' and
+    jx.data[jx.i+2] == 'l' and
+    jx.data[jx.i+3] == 'l':
+      jx.i += 4
+      return
   jx.eatChar('"')
 
   when nimvm:
@@ -277,9 +295,13 @@ proc parseHook*[T: array](jx: JsonyContext, v: var T) =
 
 proc parseHook*[T: not object](jx: JsonyContext, v: var ref T) =
   jx.eatSpace()
-  if jx.i + 3 < jx.data.len and jx.data[jx.i+0] == 'n' and jx.data[jx.i+1] == 'u' and jx.data[jx.i+2] == 'l' and jx.data[jx.i+3] == 'l':
-    jx.i += 4
-    return
+  if jx.i + 3 < jx.data.len and
+    jx.data[jx.i+0] == 'n' and
+    jx.data[jx.i+1] == 'u' and
+    jx.data[jx.i+2] == 'l' and
+    jx.data[jx.i+3] == 'l':
+      jx.i += 4
+      return
   new(v)
   jx.parseHook(v[])
 
@@ -396,9 +418,13 @@ proc parseHook*[T: enum](jx: JsonyContext, v: var T) =
 proc parseHook*[T: object|ref object](jx: JsonyContext, v: var T) =
   ## Parse an object or ref object.
   jx.eatSpace()
-  if jx.i + 3 < jx.data.len and jx.data[jx.i+0] == 'n' and jx.data[jx.i+1] == 'u' and jx.data[jx.i+2] == 'l' and jx.data[jx.i+3] == 'l':
-    jx.i += 4
-    return
+  if jx.i + 3 < jx.data.len and
+    jx.data[jx.i+0] == 'n' and
+    jx.data[jx.i+1] == 'u' and
+    jx.data[jx.i+2] == 'l' and
+    jx.data[jx.i+3] == 'l':
+      jx.i += 4
+      return
   jx.eatChar('{')
   when not v.isObjectVariant:
     when compiles(newHook(v)):
@@ -456,9 +482,13 @@ proc parseHook*[T: object|ref object](jx: JsonyContext, v: var T) =
 proc parseHook*[T](jx: JsonyContext, v: var Option[T]) =
   ## Parse an Option.
   jx.eatSpace()
-  if jx.i + 3 < jx.data.len and jx.data[jx.i+0] == 'n' and jx.data[jx.i+1] == 'u' and jx.data[jx.i+2] == 'l' and jx.data[jx.i+3] == 'l':
-    jx.i += 4
-    return
+  if jx.i + 3 < jx.data.len and
+    jx.data[jx.i+0] == 'n' and
+    jx.data[jx.i+1] == 'u' and
+    jx.data[jx.i+2] == 'l' and
+    jx.data[jx.i+3] == 'l':
+      jx.i += 4
+      return
   var e: T
   jx.parseHook(e)
   v = some(e)
