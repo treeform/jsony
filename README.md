@@ -222,6 +222,8 @@ Gives us:
 ### `proc dumpHook*()` Can be used to serializer into custom representation.
 
 Just like reading custom data types you can also write data types with `dumpHook*()`.
+The `dumpHook()` will receive the incomplete string representation of a given serialization (here `s`).
+You will need to add the serialization of your data type (here `v`) to that string.
 
 ```nim
 type Fraction = object
