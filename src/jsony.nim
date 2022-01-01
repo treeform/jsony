@@ -11,133 +11,151 @@ type
   SomeTable*[K, V] = Table[K, V] | OrderedTable[K, V] |
     TableRef[K, V] | OrderedTableRef[K, V]
 
-proc parseHook*[T](s: string, i: var int, v: var seq[T])
-proc parseHook*[T: enum](s: string, i: var int, v: var T)
-proc parseHook*[T: object|ref object](s: string, i: var int, v: var T)
-proc parseHook*[T](s: string, i: var int, v: var SomeTable[string, T])
-proc parseHook*[T](s: string, i: var int, v: var (SomeSet[T]|set[T]))
-proc parseHook*[T: tuple](s: string, i: var int, v: var T)
-proc parseHook*[T: array](s: string, i: var int, v: var T)
-proc parseHook*[T: not object](s: string, i: var int, v: var ref T)
-proc parseHook*(s: string, i: var int, v: var JsonNode)
-proc parseHook*(s: string, i: var int, v: var char)
-proc parseHook*[T: distinct](s: string, i: var int, v: var T)
+  JsonyContext* = ref object
+    data*: string        ## Data being read or written.
+    i*: int              ## Index into the data being read.
 
-template error(msg: string, i: int) =
+    # pretty: bool         ## Output with pretty indents.
+    # strictCase: bool     ## Case must match exactly.
+    # strictFields: bool   ## All fields must exist.
+    # noExtraFields: bool  ## There must be no extra fields.
+
+proc parseHook*[T](jx: JsonyContext, v: var seq[T])
+proc parseHook*[T: enum](jx: JsonyContext, v: var T)
+proc parseHook*[T: object|ref object](jx: JsonyContext, v: var T)
+proc parseHook*[T](jx: JsonyContext, v: var SomeTable[string, T])
+proc parseHook*[T](jx: JsonyContext, v: var (SomeSet[T]|set[T]))
+proc parseHook*[T: tuple](jx: JsonyContext, v: var T)
+proc parseHook*[T: array](jx: JsonyContext, v: var T)
+proc parseHook*[T: not object](jx: JsonyContext, v: var ref T)
+proc parseHook*(jx: JsonyContext, v: var JsonNode)
+proc parseHook*(jx: JsonyContext, v: var char)
+proc parseHook*[T: distinct](jx: JsonyContext, v: var T)
+
+template error(jx: JsonyContext, msg: string) =
   ## Shortcut to raise an exception.
-  raise newException(JsonError, msg & " At offset: " & $i)
+  raise newException(JsonError, msg & " At offset: " & $jx.i)
 
-template eatSpace*(s: string, i: var int) =
+template eatSpace*(jx: JsonyContext) =
   ## Will consume whitespace.
-  while i < s.len:
-    let c = s[i]
+  while jx.i < jx.data.len:
+    let c = jx.data[jx.i]
     if c notin whiteSpace:
       break
-    inc i
+    inc jx.i
 
-template eatChar*(s: string, i: var int, c: char) =
+template eatChar*(jx: JsonyContext, c: char) =
   ## Will consume space before and then the character `c`.
   ## Will raise an exception if `c` is not found.
-  eatSpace(s, i)
-  if i >= s.len:
-    error("Expected " & c & " but end reached.", i)
-  if s[i] == c:
-    inc i
+  jx.eatSpace()
+  if jx.i >= jx.data.len:
+    error(jx, "Expected " & c & " but end reached.")
+  if jx.data[jx.i] == c:
+    inc jx.i
   else:
-    error("Expected " & c & " but got " & s[i] & " instead.", i)
+    error(jx, "Expected " & c & " but got " & jx.data[jx.i] & " instead.")
 
-proc parseSymbol*(s: string, i: var int): string =
+proc parseSymbol*(jx: JsonyContext): string =
   ## Will read a symbol and return it.
   ## Used for numbers and booleans.
-  eatSpace(s, i)
-  var j = i
-  while i < s.len:
-    case s[i]
+  jx.eatSpace()
+  var j = jx.i
+  while jx.i < jx.data.len:
+    case jx.data[jx.i]
     of ',', '}', ']', whiteSpace:
       break
     else:
       discard
-    inc i
-  return s[j ..< i]
+    inc jx.i
+  return jx.data[j ..< jx.i]
 
-proc parseHook*(s: string, i: var int, v: var bool) =
+proc parseHook*(jx: JsonyContext, v: var bool) =
   ## Will parse boolean true or false.
   when nimvm:
-    case parseSymbol(s, i)
+    case jx.parseSymbol()
     of "true":
       v = true
     of "false":
       v = false
     else:
-      error("Boolean true or false expected.", i)
+      error(jx, "Boolean true or false expected.")
   else:
     # Its faster to do char by char scan:
-    eatSpace(s, i)
-    if i + 3 < s.len and s[i+0] == 't' and s[i+1] == 'r' and s[i+2] == 'u' and s[i+3] == 'e':
-      i += 4
-      v = true
-    elif i + 4 < s.len and s[i+0] == 'f' and s[i+1] == 'a' and s[i+2] == 'l' and s[i+3] == 's' and s[i+4] == 'e':
-      i += 5
-      v = false
+    jx.eatSpace()
+    if jx.i + 3 < jx.data.len and
+      jx.data[jx.i+0] == 't' and
+      jx.data[jx.i+1] == 'r' and
+      jx.data[jx.i+2] == 'u' and
+      jx.data[jx.i+3] == 'e':
+        jx.i += 4
+        v = true
+    elif jx.i + 4 < jx.data.len and
+      jx.data[jx.i+0] == 'f' and
+      jx.data[jx.i+1] == 'a' and
+      jx.data[jx.i+2] == 'l' and
+      jx.data[jx.i+3] == 's' and
+      jx.data[jx.i+4] == 'e':
+        jx.i += 5
+        v = false
     else:
-      error("Boolean true or false expected.", i)
+      error(jx, "Boolean true or false expected.")
 
-proc parseHook*(s: string, i: var int, v: var SomeUnsignedInt) =
+proc parseHook*(jx: JsonyContext, v: var SomeUnsignedInt) =
   ## Will parse unsigned integers.
   when nimvm:
-    v = type(v)(parseInt(parseSymbol(s, i)))
+    v = type(v)(parseInt(jx.parseSymbol()))
   else:
-    eatSpace(s, i)
+    jx.eatSpace()
     var
       v2: uint64 = 0
-      startI = i
-    while i < s.len and s[i] in {'0'..'9'}:
-      v2 = v2 * 10 + (s[i].ord - '0'.ord).uint64
-      inc i
-    if startI == i:
-      error("Number expected.", i)
+      startI = jx.i
+    while jx.i < jx.data.len and jx.data[jx.i] in {'0'..'9'}:
+      v2 = v2 * 10 + (jx.data[jx.i].ord - '0'.ord).uint64
+      inc jx.i
+    if startI == jx.i:
+      error(jx, "Number expected.")
     v = type(v)(v2)
 
-proc parseHook*(s: string, i: var int, v: var SomeSignedInt) =
+proc parseHook*(jx: JsonyContext, v: var SomeSignedInt) =
   ## Will parse signed integers.
   when nimvm:
-    v = type(v)(parseInt(parseSymbol(s, i)))
+    v = type(v)(parseInt(jx.parseSymbol()))
   else:
-    eatSpace(s, i)
-    if i < s.len and s[i] == '+':
-      inc i
-    if i < s.len and s[i] == '-':
+    jx.eatSpace()
+    if jx.i < jx.data.len and jx.data[jx.i] == '+':
+      inc jx.i
+    if jx.i < jx.data.len and jx.data[jx.i] == '-':
       var v2: uint64
-      inc i
-      parseHook(s, i, v2)
+      inc jx.i
+      jx.parseHook(v2)
       v = -type(v)(v2)
     else:
       var v2: uint64
-      parseHook(s, i, v2)
+      jx.parseHook(v2)
       try:
         v = type(v)(v2)
       except:
-        error("Number type to small to contain the number.", i)
+        error(jx, "Number type to small to contain the number.")
 
-proc parseHook*(s: string, i: var int, v: var SomeFloat) =
+proc parseHook*(jx: JsonyContext, v: var SomeFloat) =
   ## Will parse float32 and float64.
   var f: float
-  eatSpace(s, i)
-  let chars = parseutils.parseFloat(s, f, i)
+  jx.eatSpace()
+  let chars = parseutils.parseFloat(jx.data, f, jx.i)
   if chars == 0:
-    error("Failed to parse a float.", i)
-  i += chars
+    error(jx, "Failed to parse a float.")
+  jx.i += chars
   v = f
 
-proc parseStringSlow(s: string, i: var int, v: var string) =
-  while i < s.len:
-    let c = s[i]
+proc parseStringSlow(jx: JsonyContext, v: var string) =
+  while jx.i < jx.data.len:
+    let c = jx.data[jx.i]
     case c
     of '"':
       break
     of '\\':
-      inc i
-      let c = s[i]
+      inc jx.i
+      let c = jx.data[jx.i]
       case c
       of '"', '\\', '/': v.add(c)
       of 'b': v.add '\b'
@@ -146,35 +164,35 @@ proc parseStringSlow(s: string, i: var int, v: var string) =
       of 'r': v.add '\r'
       of 't': v.add '\t'
       of 'u':
-        inc i
-        let u = parseHexInt(s[i ..< i + 4])
-        i += 3
+        inc jx.i
+        let u = parseHexInt(jx.data[jx.i ..< jx.i + 4])
+        jx.i += 3
         v.add(Rune(u).toUTF8())
       else:
         v.add(c)
     else:
       v.add(c)
-    inc i
-  eatChar(s, i, '"')
+    inc jx.i
+  jx.eatChar('"')
 
-proc parseStringFast(s: string, i: var int, v: var string) =
+proc parseStringFast(jx: JsonyContext, v: var string) =
   # It appears to be faster to scan the string once, then allocate exact chars,
   # and then scan the string again populating it.
   var
-    j = i
+    j = jx.i
     ll = 0
-  while j < s.len:
-    let c = s[j]
+  while j < jx.data.len:
+    let c = jx.data[j]
     case c
     of '"':
       break
     of '\\':
       inc j
-      let c = s[j]
+      let c = jx.data[j]
       case c
       of 'u':
         inc j
-        let u = parseHexInt(s[j ..< j + 4])
+        let u = parseHexInt(jx.data[j ..< j + 4])
         j += 3
         ll += Rune(u).toUTF8().len
       else:
@@ -191,14 +209,14 @@ proc parseStringFast(s: string, i: var int, v: var string) =
     template add(ss: ptr UncheckedArray[char], c: char) =
       ss[at] = c
       inc at
-    while i < s.len:
-      let c = s[i]
+    while jx.i < jx.data.len:
+      let c = jx.data[jx.i]
       case c
       of '"':
         break
       of '\\':
-        inc i
-        let c = s[i]
+        inc jx.i
+        let c = jx.data[jx.i]
         case c
         of '"', '\\', '/': ss.add(c)
         of 'b': ss.add '\b'
@@ -207,110 +225,118 @@ proc parseStringFast(s: string, i: var int, v: var string) =
         of 'r': ss.add '\r'
         of 't': ss.add '\t'
         of 'u':
-          inc i
-          let u = parseHexInt(s[i ..< i + 4])
-          i += 3
+          inc jx.i
+          let u = parseHexInt(jx.data[jx.i ..< jx.i + 4])
+          jx.i += 3
           for c in Rune(u).toUTF8():
             ss.add(c)
         else:
           ss.add(c)
       else:
         ss.add(c)
-      inc i
+      inc jx.i
 
-  eatChar(s, i, '"')
+  jx.eatChar('"')
 
-proc parseHook*(s: string, i: var int, v: var string) =
+proc parseHook*(jx: JsonyContext, v: var string) =
   ## Parse string.
-  eatSpace(s, i)
-  if i + 3 < s.len and s[i+0] == 'n' and s[i+1] == 'u' and s[i+2] == 'l' and s[i+3] == 'l':
-    i += 4
-    return
-  eatChar(s, i, '"')
+  jx.eatSpace()
+  if jx.i + 3 < jx.data.len and
+    jx.data[jx.i+0] == 'n' and
+    jx.data[jx.i+1] == 'u' and
+    jx.data[jx.i+2] == 'l' and
+    jx.data[jx.i+3] == 'l':
+      jx.i += 4
+      return
+  jx.eatChar('"')
 
   when nimvm:
-    parseStringSlow(s, i, v)
+    jx.parseStringSlow(v)
   else:
     when defined(js):
-      parseStringSlow(s, i, v)
+      jx.parseStringSlow(v)
     else:
-      parseStringFast(s, i, v)
+      jx.parseStringFast(v)
 
-proc parseHook*(s: string, i: var int, v: var char) =
+proc parseHook*(jx: JsonyContext, v: var char) =
   var str: string
-  s.parseHook(i, str)
+  jx.parseHook(str)
   if str.len != 1:
-    error("String can't fit into a char.", i)
+    error(jx, "String can't fit into a char.")
   v = str[0]
 
-proc parseHook*[T](s: string, i: var int, v: var seq[T]) =
+proc parseHook*[T](jx: JsonyContext, v: var seq[T]) =
   ## Parse seq.
-  eatChar(s, i, '[')
-  while i < s.len:
-    eatSpace(s, i)
-    if i < s.len and s[i] == ']':
+  jx.eatChar('[')
+  while jx.i < jx.data.len:
+    jx.eatSpace()
+    if jx.i < jx.data.len and jx.data[jx.i] == ']':
       break
     var element: T
-    parseHook(s, i, element)
+    jx.parseHook(element)
     v.add(element)
-    eatSpace(s, i)
-    if i < s.len and s[i] == ',':
-      inc i
+    jx.eatSpace()
+    if jx.i < jx.data.len and jx.data[jx.i] == ',':
+      inc jx.i
     else:
       break
-  eatChar(s, i, ']')
+  jx.eatChar(']')
 
-proc parseHook*[T: array](s: string, i: var int, v: var T) =
-  eatSpace(s, i)
-  eatChar(s, i, '[')
+proc parseHook*[T: array](jx: JsonyContext, v: var T) =
+  jx.eatSpace()
+  jx.eatChar('[')
   for value in v.mitems:
-    eatSpace(s, i)
-    parseHook(s, i, value)
-    eatSpace(s, i)
-    if i < s.len and s[i] == ',':
-      inc i
-  eatChar(s, i, ']')
+    jx.eatSpace()
+    jx.parseHook(value)
+    jx.eatSpace()
+    if jx.i < jx.data.len and jx.data[jx.i] == ',':
+      inc jx.i
+  jx.eatChar(']')
 
-proc parseHook*[T: not object](s: string, i: var int, v: var ref T) =
-  eatSpace(s, i)
-  if i + 3 < s.len and s[i+0] == 'n' and s[i+1] == 'u' and s[i+2] == 'l' and s[i+3] == 'l':
-    i += 4
-    return
+proc parseHook*[T: not object](jx: JsonyContext, v: var ref T) =
+  jx.eatSpace()
+  if jx.i + 3 < jx.data.len and
+    jx.data[jx.i+0] == 'n' and
+    jx.data[jx.i+1] == 'u' and
+    jx.data[jx.i+2] == 'l' and
+    jx.data[jx.i+3] == 'l':
+      jx.i += 4
+      return
   new(v)
-  parseHook(s, i, v[])
+  jx.parseHook(v[])
 
-proc skipValue(s: string, i: var int) =
+proc skipValue(jx: JsonyContext) =
   ## Used to skip values of extra fields.
-  eatSpace(s, i)
-  if i < s.len and s[i] == '{':
-    eatChar(s, i, '{')
-    while i < s.len:
-      eatSpace(s, i)
-      if i < s.len and s[i] == '}':
+  jx.eatSpace()
+  if jx.i < jx.data.len and jx.data[jx.i] == '{':
+    jx.eatChar('{')
+    while jx.i < jx.data.len:
+      jx.eatSpace()
+      if jx.i < jx.data.len and jx.data[jx.i] == '}':
         break
-      skipValue(s, i)
-      eatChar(s, i, ':')
-      skipValue(s, i)
-      eatSpace(s, i)
-      if i < s.len and s[i] == ',':
-        inc i
-    eatChar(s, i, '}')
-  elif i < s.len and s[i] == '[':
-    eatChar(s, i, '[')
-    while i < s.len:
-      eatSpace(s, i)
-      if i < s.len and s[i] == ']':
+      jx.skipValue()
+      jx.eatChar(':')
+      jx.skipValue()
+      jx.eatSpace()
+      if jx.i < jx.data.len and jx.data[jx.i] == ',':
+        inc jx.i
+    jx.eatChar('}')
+  elif jx.i < jx.data.len and jx.data[jx.i] == '[':
+    jx.eatChar('[')
+    while jx.i < jx.data.len:
+      jx.eatSpace()
+      if jx.i < jx.data.len and jx.data[jx.i] == ']':
         break
-      skipValue(s, i)
-      eatSpace(s, i)
-      if i < s.len and s[i] == ',':
-        inc i
-    eatChar(s, i, ']')
-  elif i < s.len and s[i] == '"':
+      jx.skipValue()
+      jx.eatSpace()
+      if jx.i < jx.data.len and jx.data[jx.i] == ',':
+        inc jx.i
+    jx.eatChar(']')
+  elif jx.i < jx.data.len and jx.data[jx.i] == '"':
     var str: string
-    parseHook(s, i, str)
+    jx.parseHook(str)
   else:
-    discard parseSymbol(s, i)
+    discard jx.parseSymbol()
 
 proc snakeCaseDynamic(s: string): string =
   if s.len == 0:
@@ -330,72 +356,76 @@ template snakeCase(s: string): string =
   const k = snakeCaseDynamic(s)
   k
 
-proc parseObject[T](s: string, i: var int, v: var T) =
-  eatChar(s, i, '{')
-  while i < s.len:
-    eatSpace(s, i)
-    if i < s.len and s[i] == '}':
+proc parseObject[T](jx: JsonyContext, v: var T) =
+  jx.eatChar('{')
+  while jx.i < jx.data.len:
+    jx.eatSpace()
+    if jx.i < jx.data.len and jx.data[jx.i] == '}':
       break
     var key: string
-    parseHook(s, i, key)
-    eatChar(s, i, ':')
+    jx.parseHook(key)
+    jx.eatChar(':')
     when compiles(renameHook(v, key)):
       renameHook(v, key)
     block all:
       for k, v in v.fieldPairs:
         if k == key or snakeCase(k) == key:
           var v2: type(v)
-          parseHook(s, i, v2)
+          jx.parseHook(v2)
           v = v2
           break all
-      skipValue(s, i)
-    eatSpace(s, i)
-    if i < s.len and s[i] == ',':
-      inc i
+      jx.skipValue()
+    jx.eatSpace()
+    if jx.i < jx.data.len and jx.data[jx.i] == ',':
+      inc jx.i
     else:
       break
 
-proc parseHook*[T: tuple](s: string, i: var int, v: var T) =
-  eatSpace(s, i)
+proc parseHook*[T: tuple](jx: JsonyContext, v: var T) =
+  jx.eatSpace()
   when T.isNamedTuple():
-    if i < s.len and s[i] == '{':
-      parseObject(s, i, v)
+    if jx.i < jx.data.len and jx.data[jx.i] == '{':
+      jx.parseObject(v)
       return
-  eatChar(s, i, '[')
+  jx.eatChar('[')
   for name, value in v.fieldPairs:
-    eatSpace(s, i)
-    parseHook(s, i, value)
-    eatSpace(s, i)
-    if i < s.len and s[i] == ',':
-      inc i
-  eatChar(s, i, ']')
+    jx.eatSpace()
+    jx.parseHook(value)
+    jx.eatSpace()
+    if jx.i < jx.data.len and jx.data[jx.i] == ',':
+      inc jx.i
+  jx.eatChar(']')
 
-proc parseHook*[T: enum](s: string, i: var int, v: var T) =
-  eatSpace(s, i)
+proc parseHook*[T: enum](jx: JsonyContext, v: var T) =
+  jx.eatSpace()
   var strV: string
-  if i < s.len and s[i] == '"':
-    parseHook(s, i, strV)
+  if jx.i < jx.data.len and jx.data[jx.i] == '"':
+    jx.parseHook(strV)
     when compiles(enumHook(strV, v)):
       enumHook(strV, v)
     else:
       try:
         v = parseEnum[T](strV)
       except:
-        error("Can't parse enum.", i)
+        error(jx, "Can't parse enum.")
   else:
     try:
-      strV = parseSymbol(s, i)
+      strV = jx.parseSymbol()
       v = T(parseInt(strV))
     except:
-      error("Can't parse enum.", i)
+      error(jx, "Can't parse enum.")
 
-proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
+proc parseHook*[T: object|ref object](jx: JsonyContext, v: var T) =
   ## Parse an object or ref object.
-  eatSpace(s, i)
-  if i + 3 < s.len and s[i+0] == 'n' and s[i+1] == 'u' and s[i+2] == 'l' and s[i+3] == 'l':
-    i += 4
-    return
-  eatChar(s, i, '{')
+  jx.eatSpace()
+  if jx.i + 3 < jx.data.len and
+    jx.data[jx.i+0] == 'n' and
+    jx.data[jx.i+1] == 'u' and
+    jx.data[jx.i+2] == 'l' and
+    jx.data[jx.i+3] == 'l':
+      jx.i += 4
+      return
+  jx.eatChar('{')
   when not v.isObjectVariant:
     when compiles(newHook(v)):
       newHook(v)
@@ -403,139 +433,143 @@ proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
       new(v)
   else:
     # Look for the discriminatorFieldName
-    eatSpace(s, i)
-    var saveI = i
-    while i < s.len:
+    jx.eatSpace()
+    var saveI = jx.i
+    while jx.i < jx.data.len:
       var key: string
-      parseHook(s, i, key)
-      eatChar(s, i, ':')
+      jx.parseHook(key)
+      jx.eatChar(':')
       when compiles(renameHook(v, key)):
         renameHook(v, key)
       if key == v.discriminatorFieldName:
         var discriminator: type(v.discriminatorField)
-        parseHook(s, i, discriminator)
+        jx.parseHook(discriminator)
         new(v, discriminator)
         when compiles(newHook(v)):
           newHook(v)
         break
-      skipValue(s, i)
-      if i < s.len and s[i] == '}':
-        error("No discriminator field.", i)
-      eatChar(s, i, ',')
-    i = saveI
-  while i < s.len:
-    eatSpace(s, i)
-    if i < s.len and s[i] == '}':
+      jx.skipValue()
+      if jx.i < jx.data.len and jx.data[jx.i] == '}':
+        error(jx, "No discriminator field.")
+      jx.eatChar(',')
+    jx.i = saveI
+  while jx.i < jx.data.len:
+    jx.eatSpace()
+    if jx.i < jx.data.len and jx.data[jx.i] == '}':
       break
     var key: string
-    parseHook(s, i, key)
-    eatChar(s, i, ':')
+    jx.parseHook(key)
+    jx.eatChar(':')
     when compiles(renameHook(v, key)):
       renameHook(v, key)
     block all:
       for k, v in v.fieldPairs:
         if k == key or snakeCase(k) == key:
           var v2: type(v)
-          parseHook(s, i, v2)
+          jx.parseHook(v2)
           v = v2
           break all
-      skipValue(s, i)
-    eatSpace(s, i)
-    if i < s.len and s[i] == ',':
-      inc i
+      jx.skipValue()
+    jx.eatSpace()
+    if jx.i < jx.data.len and jx.data[jx.i] == ',':
+      inc jx.i
     else:
       break
   when compiles(postHook(v)):
     postHook(v)
-  eatChar(s, i, '}')
+  jx.eatChar('}')
 
-proc parseHook*[T](s: string, i: var int, v: var Option[T]) =
+proc parseHook*[T](jx: JsonyContext, v: var Option[T]) =
   ## Parse an Option.
-  eatSpace(s, i)
-  if i + 3 < s.len and s[i+0] == 'n' and s[i+1] == 'u' and s[i+2] == 'l' and s[i+3] == 'l':
-    i += 4
-    return
+  jx.eatSpace()
+  if jx.i + 3 < jx.data.len and
+    jx.data[jx.i+0] == 'n' and
+    jx.data[jx.i+1] == 'u' and
+    jx.data[jx.i+2] == 'l' and
+    jx.data[jx.i+3] == 'l':
+      jx.i += 4
+      return
   var e: T
-  parseHook(s, i, e)
+  jx.parseHook(e)
   v = some(e)
 
-proc parseHook*[T](s: string, i: var int, v: var SomeTable[string, T]) =
+proc parseHook*[T](jx: JsonyContext, v: var SomeTable[string, T]) =
   ## Parse an object.
   when compiles(new(v)):
     new(v)
-  eatChar(s, i, '{')
-  while i < s.len:
-    eatSpace(s, i)
-    if i < s.len and s[i] == '}':
+  jx.eatChar('{')
+  while jx.i < jx.data.len:
+    jx.eatSpace()
+    if jx.i < jx.data.len and jx.data[jx.i] == '}':
       break
     var key: string
-    parseHook(s, i, key)
-    eatChar(s, i, ':')
+    jx.parseHook(key)
+    jx.eatChar(':')
     var element: T
-    parseHook(s, i, element)
+    jx.parseHook(element)
     v[key] = element
-    if i < s.len and s[i] == ',':
-      inc i
+    if jx.i < jx.data.len and jx.data[jx.i] == ',':
+      inc jx.i
     else:
       break
-  eatChar(s, i, '}')
+  jx.eatChar('}')
 
-proc parseHook*[T](s: string, i: var int, v: var (SomeSet[T]|set[T])) =
+proc parseHook*[T](jx: JsonyContext, v: var (SomeSet[T]|set[T])) =
   ## Parses `HashSet`, `OrderedSet`, or a built-in `set` type.
-  eatSpace(s, i)
-  eatChar(s, i, '[')
+  jx.eatSpace()
+  jx.eatChar('[')
   while true:
-    eatSpace(s, i)
-    if i < s.len and s[i] == ']':
+    jx.eatSpace()
+    if jx.i < jx.data.len and jx.data[jx.i] == ']':
       break
     var e: T
-    parseHook(s, i, e)
+    jx.parseHook(e)
     v.incl(e)
-    eatSpace(s, i)
-    if i < s.len and s[i] == ',':
-      inc i
-  eatChar(s, i, ']')
+    jx.eatSpace()
+    if jx.i < jx.data.len and jx.data[jx.i] == ',':
+      inc jx.i
+  jx.eatChar(']')
 
-proc parseHook*(s: string, i: var int, v: var JsonNode) =
+proc parseHook*(jx: JsonyContext, v: var JsonNode) =
   ## Parses a regular json node.
-  eatSpace(s, i)
-  if i < s.len and s[i] == '{':
+  jx.eatSpace()
+  if jx.i < jx.data.len and jx.data[jx.i] == '{':
     v = newJObject()
-    eatChar(s, i, '{')
-    while i < s.len:
-      eatSpace(s, i)
-      if i < s.len and s[i] == '}':
+    jx.eatChar('{')
+    while jx.i < jx.data.len:
+      jx.eatSpace()
+      if jx.i < jx.data.len and jx.data[jx.i] == '}':
         break
       var k: string
-      parseHook(s, i, k)
-      eatChar(s, i, ':')
+      jx.parseHook(k)
+      jx.eatChar(':')
       var e: JsonNode
-      parseHook(s, i, e)
+      jx.parseHook(e)
       v[k] = e
-      eatSpace(s, i)
-      if i < s.len and s[i] == ',':
-        inc i
-    eatChar(s, i, '}')
-  elif i < s.len and s[i] == '[':
+      jx.eatSpace()
+      if jx.i < jx.data.len and jx.data[jx.i] == ',':
+        inc jx.i
+    jx.eatChar('}')
+  elif jx.i < jx.data.len and jx.data[jx.i] == '[':
     v = newJArray()
-    eatChar(s, i, '[')
-    while i < s.len:
-      eatSpace(s, i)
-      if i < s.len and s[i] == ']':
+    jx.eatChar('[')
+    while jx.i < jx.data.len:
+      jx.eatSpace()
+      if jx.i < jx.data.len and jx.data[jx.i] == ']':
         break
       var e: JsonNode
-      parseHook(s, i, e)
+      jx.parseHook(e)
       v.add(e)
-      eatSpace(s, i)
-      if i < s.len and s[i] == ',':
-        inc i
-    eatChar(s, i, ']')
-  elif i < s.len and s[i] == '"':
+      jx.eatSpace()
+      if jx.i < jx.data.len and jx.data[jx.i] == ',':
+        inc jx.i
+    jx.eatChar(']')
+  elif jx.i < jx.data.len and jx.data[jx.i] == '"':
     var str: string
-    parseHook(s, i, str)
+    jx.parseHook(str)
     v = newJString(str)
   else:
-    var data = parseSymbol(s, i)
+    var data = jx.parseSymbol()
     if data == "null":
       v = newJNull()
     elif data == "true":
@@ -549,13 +583,13 @@ proc parseHook*(s: string, i: var int, v: var JsonNode) =
         try:
           v = newJFloat(parseFloat(data))
         except ValueError:
-          error("Invalid number.", i)
+          error(jx, "Invalid number.")
     else:
-      error("Unexpected.", i)
+      error(jx, "Unexpected.")
 
-proc parseHook*[T: distinct](s: string, i: var int, v: var T) =
+proc parseHook*[T: distinct](jx: JsonyContext, v: var T) =
   var x: T.distinctBase
-  parseHook(s, i, x)
+  jx.parseHook(x)
   v = cast[T](x)
 
 proc fromJson*[T](s: string, x: typedesc[T]): T =
@@ -563,39 +597,41 @@ proc fromJson*[T](s: string, x: typedesc[T]): T =
   ## * Extra json fields are ignored.
   ## * Missing json fields keep their default values.
   ## * `proc newHook(foo: var ...)` Can be used to populate default values.
-  var i = 0
-  s.parseHook(i, result)
+  var jx = JsonyContext(data: s)
+  jx.parseHook(result)
 
 proc fromJson*(s: string): JsonNode =
-  ## Takes json parses it into `JsonNode`s.
-  var i = 0
-  s.parseHook(i, result)
+  ## Takes json parses it into `JsonNode`jx.data.
+  var jx = JsonyContext(data: s)
+  jx.parseHook(result)
 
-proc dumpHook*(s: var string, v: bool)
-proc dumpHook*(s: var string, v: uint|uint8|uint16|uint32|uint64)
-proc dumpHook*(s: var string, v: int|int8|int16|int32|int64)
-proc dumpHook*(s: var string, v: SomeFloat)
-proc dumpHook*(s: var string, v: string)
-proc dumpHook*(s: var string, v: char)
-proc dumpHook*(s: var string, v: tuple)
-proc dumpHook*(s: var string, v: enum)
+
+
+proc dumpHook*(jx: JsonyContext, v: bool)
+proc dumpHook*(jx: JsonyContext, v: uint|uint8|uint16|uint32|uint64)
+proc dumpHook*(jx: JsonyContext, v: int|int8|int16|int32|int64)
+proc dumpHook*(jx: JsonyContext, v: SomeFloat)
+proc dumpHook*(jx: JsonyContext, v: string)
+proc dumpHook*(jx: JsonyContext, v: char)
+proc dumpHook*(jx: JsonyContext, v: tuple)
+proc dumpHook*(jx: JsonyContext, v: enum)
 type t[T] = tuple[a:string, b:T]
-proc dumpHook*[N, T](s: var string, v: array[N, t[T]])
-proc dumpHook*[N, T](s: var string, v: array[N, T])
-proc dumpHook*[T](s: var string, v: seq[T])
-proc dumpHook*(s: var string, v: object)
-proc dumpHook*(s: var string, v: ref)
-proc dumpHook*[T: distinct](s: var string, v: T)
+proc dumpHook*[N, T](jx: JsonyContext, v: array[N, t[T]])
+proc dumpHook*[N, T](jx: JsonyContext, v: array[N, T])
+proc dumpHook*[T](jx: JsonyContext, v: seq[T])
+proc dumpHook*(jx: JsonyContext, v: object)
+proc dumpHook*(jx: JsonyContext, v: ref)
+proc dumpHook*[T: distinct](jx: JsonyContext, v: T)
 
-proc dumpHook*[T: distinct](s: var string, v: T) =
+proc dumpHook*[T: distinct](jx: JsonyContext, v: T) =
   var x = cast[T.distinctBase](v)
-  s.dumpHook(x)
+  jx.dumpHook(x)
 
-proc dumpHook*(s: var string, v: bool) =
+proc dumpHook*(jx: JsonyContext, v: bool) =
   if v:
-    s.add "true"
+    jx.data.add "true"
   else:
-    s.add "false"
+    jx.data.add "false"
 
 const lookup = block:
   ## Generate 00, 01, 02 ... 99 pairs.
@@ -606,14 +642,14 @@ const lookup = block:
     s.add($i)
   s
 
-proc dumpNumberSlow(s: var string, v: uint|uint8|uint16|uint32|uint64) =
-  s.add $v.uint64
+proc dumpNumberSlow(jx: JsonyContext, v: uint|uint8|uint16|uint32|uint64) =
+  jx.data.add $v.uint64
 
-proc dumpNumberFast(s: var string, v: uint|uint8|uint16|uint32|uint64) =
+proc dumpNumberFast(jx: JsonyContext, v: uint|uint8|uint16|uint32|uint64) =
   # Its faster to not allocate a string for a number,
   # but to write it out the digits directly.
   if v == 0:
-    s.add '0'
+    jx.data.add '0'
     return
   # Max size of a uin64 number is 20 digits.
   var digits: array[20, char]
@@ -627,58 +663,58 @@ proc dumpNumberFast(s: var string, v: uint|uint8|uint16|uint32|uint64) =
     digits[p] = lookup[idx*2]
     inc p
     v = v div 100
-  var at = s.len
+  var at = jx.data.len
   if digits[p-1] == '0':
     dec p
-  s.setLen(s.len + p)
+  jx.data.setLen(jx.data.len + p)
   dec p
   while p >= 0:
-    s[at] = digits[p]
+    jx.data[at] = digits[p]
     dec p
     inc at
 
-proc dumpHook*(s: var string, v: uint|uint8|uint16|uint32|uint64) =
+proc dumpHook*(jx: JsonyContext, v: uint|uint8|uint16|uint32|uint64) =
   when nimvm:
-    s.dumpNumberSlow(v)
+    jx.dumpNumberSlow(v)
   else:
     when defined(js):
-      s.dumpNumberSlow(v)
+      jx.dumpNumberSlow(v)
     else:
-      s.dumpNumberFast(v)
+      jx.dumpNumberFast(v)
 
-proc dumpHook*(s: var string, v: int|int8|int16|int32|int64) =
+proc dumpHook*(jx: JsonyContext, v: int|int8|int16|int32|int64) =
   if v < 0:
-    s.add '-'
-    dumpHook(s, 0.uint64 - v.uint64)
+    jx.data.add '-'
+    jx.dumpHook( 0.uint64 - v.uint64)
   else:
-    dumpHook(s, v.uint64)
+    jx.dumpHook(v.uint64)
 
-proc dumpHook*(s: var string, v: SomeFloat) =
-  s.add $v
+proc dumpHook*(jx: JsonyContext, v: SomeFloat) =
+  jx.data.add $v
 
-proc dumpStrSlow(s: var string, v: string) =
-  s.add '"'
+proc dumpStrSlow(jx: JsonyContext, v: string) =
+  jx.data.add '"'
   for c in v:
     case c:
-    of '\\': s.add r"\\"
-    of '\b': s.add r"\b"
-    of '\f': s.add r"\f"
-    of '\n': s.add r"\n"
-    of '\r': s.add r"\r"
-    of '\t': s.add r"\t"
-    of '"': s.add r"\"""
+    of '\\': jx.data.add r"\\"
+    of '\b': jx.data.add r"\b"
+    of '\f': jx.data.add r"\f"
+    of '\n': jx.data.add r"\n"
+    of '\r': jx.data.add r"\r"
+    of '\t': jx.data.add r"\t"
+    of '"': jx.data.add r"\"""
     else:
-      s.add c
-  s.add '"'
+      jx.data.add c
+  jx.data.add '"'
 
-proc dumpStrFast(s: var string, v: string) =
+proc dumpStrFast(jx: JsonyContext, v: string) =
   # Its faster to grow the string only once.
   # Then fill the string with pointers.
   # Then cap it off to right length.
-  var at = s.len
-  s.setLen(s.len + v.len*2+2)
+  var at = jx.data.len
+  jx.data.setLen(jx.data.len + v.len*2+2)
 
-  var ss = cast[ptr UncheckedArray[char]](s[0].addr)
+  var ss = cast[ptr UncheckedArray[char]](jx.data[0].addr)
   template add(ss: ptr UncheckedArray[char], c: char) =
     ss[at] = c
     inc at
@@ -701,153 +737,155 @@ proc dumpStrFast(s: var string, v: string) =
     else:
       ss.add c
   ss.add '"'
-  s.setLen(at)
+  jx.data.setLen(at)
 
-proc dumpHook*(s: var string, v: string) =
+proc dumpHook*(jx: JsonyContext, v: string) =
   when nimvm:
-    s.dumpStrSlow(v)
+    jx.dumpStrSlow(v)
   else:
     when defined(js):
-      s.dumpStrSlow(v)
+      jx.dumpStrSlow(v)
     else:
-      s.dumpStrFast(v)
+      jx.dumpStrFast(v)
 
-template dumpKey(s: var string, v: string) =
+template dumpKey(jx: JsonyContext, v: string) =
   const v2 = v.toJson() & ":"
-  s.add v2
+  jx.data.add v2
 
-proc dumpHook*(s: var string, v: char) =
-  s.add '"'
-  s.add v
-  s.add '"'
+proc dumpHook*(jx: JsonyContext, v: char) =
+  jx.data.add '"'
+  jx.data.add v
+  jx.data.add '"'
 
-proc dumpHook*(s: var string, v: tuple) =
-  s.add '['
+proc dumpHook*(jx: JsonyContext, v: tuple) =
+  jx.data.add '['
   var i = 0
   for _, e in v.fieldPairs:
     if i > 0:
-      s.add ','
-    s.dumpHook(e)
+      jx.data.add ','
+    jx.dumpHook(e)
     inc i
-  s.add ']'
+  jx.data.add ']'
 
-proc dumpHook*(s: var string, v: enum) =
-  s.dumpHook($v)
+proc dumpHook*(jx: JsonyContext, v: enum) =
+  jx.dumpHook($v)
 
-proc dumpHook*[N, T](s: var string, v: array[N, T]) =
-  s.add '['
+proc dumpHook*[N, T](jx: JsonyContext, v: array[N, T]) =
+  jx.data.add '['
   var i = 0
   for e in v:
     if i != 0:
-      s.add ','
-    s.dumpHook(e)
+      jx.data.add ','
+    jx.dumpHook(e)
     inc i
-  s.add ']'
+  jx.data.add ']'
 
-proc dumpHook*[T](s: var string, v: seq[T]) =
-  s.add '['
+proc dumpHook*[T](jx: JsonyContext, v: seq[T]) =
+  jx.data.add '['
   for i, e in v:
     if i != 0:
-      s.add ','
-    s.dumpHook(e)
-  s.add ']'
+      jx.data.add ','
+    jx.dumpHook(e)
+  jx.data.add ']'
 
-proc dumpHook*[T](s: var string, v: Option[T]) =
+proc dumpHook*[T](jx: JsonyContext, v: Option[T]) =
   if v.isNone:
-    s.add "null"
+    jx.data.add "null"
   else:
-    s.dumpHook(v.get())
+    jx.dumpHook(v.get())
 
-proc dumpHook*(s: var string, v: object) =
-  s.add '{'
+proc dumpHook*(jx: JsonyContext, v: object) =
+  jx.data.add '{'
   var i = 0
   when compiles(for k, e in v.pairs: discard):
     # Tables and table like objects.
     for k, e in v.pairs:
       if i > 0:
-        s.add ','
-      s.dumpHook(k)
-      s.add ':'
-      s.dumpHook(e)
+        jx.data.add ','
+      jx.dumpHook(k)
+      jx.data.add ':'
+      jx.dumpHook(e)
       inc i
   else:
     # Normal objects.
     for k, e in v.fieldPairs:
       if i > 0:
-        s.add ','
-      s.dumpKey(k)
-      s.dumpHook(e)
+        jx.data.add ','
+      jx.dumpKey(k)
+      jx.dumpHook(e)
       inc i
-  s.add '}'
+  jx.data.add '}'
 
-proc dumpHook*[N, T](s: var string, v: array[N, t[T]]) =
-  s.add '{'
+proc dumpHook*[N, T](jx: JsonyContext, v: array[N, t[T]]) =
+  jx.data.add '{'
   var i = 0
   # Normal objects.
   for (k, e) in v:
     if i > 0:
-      s.add ','
-    s.dumpHook(k)
-    s.add ':'
-    s.dumpHook(e)
+      jx.data.add ','
+    jx.dumpHook(k)
+    jx.data.add ':'
+    jx.dumpHook(e)
     inc i
-  s.add '}'
+  jx.data.add '}'
 
-proc dumpHook*(s: var string, v: ref) =
+proc dumpHook*(jx: JsonyContext, v: ref) =
   if v == nil:
-    s.add "null"
+    jx.data.add "null"
   else:
-    s.dumpHook(v[])
+    jx.dumpHook(v[])
 
-proc dumpHook*[T](s: var string, v: SomeSet[T]|set[T]) =
-  s.add '['
+proc dumpHook*[T](jx: JsonyContext, v: SomeSet[T]|set[T]) =
+  jx.data.add '['
   var i = 0
   for e in v:
     if i != 0:
-      s.add ','
-    s.dumpHook(e)
+      jx.data.add ','
+    jx.dumpHook(e)
     inc i
-  s.add ']'
+  jx.data.add ']'
 
-proc dumpHook*(s: var string, v: JsonNode) =
+proc dumpHook*(jx: JsonyContext, v: JsonNode) =
   ## Dumps a regular json node.
   if v == nil:
-    s.add "null"
+    jx.data.add "null"
   else:
     case v.kind:
     of JObject:
-      s.add '{'
+      jx.data.add '{'
       var i = 0
       for k, e in v.pairs:
         if i != 0:
-          s.add ","
-        s.dumpHook(k)
-        s.add ':'
-        s.dumpHook(e)
+          jx.data.add ","
+        jx.dumpHook(k)
+        jx.data.add ':'
+        jx.dumpHook(e)
         inc i
-      s.add '}'
+      jx.data.add '}'
     of JArray:
-      s.add '['
+      jx.data.add '['
       var i = 0
       for e in v:
         if i != 0:
-          s.add ","
-        s.dumpHook(e)
+          jx.data.add ","
+        jx.dumpHook(e)
         inc i
-      s.add ']'
+      jx.data.add ']'
     of JNull:
-      s.add "null"
+      jx.data.add "null"
     of JInt:
-      s.dumpHook(v.getInt)
+      jx.dumpHook(v.getInt)
     of JFloat:
-      s.dumpHook(v.getFloat)
+      jx.dumpHook(v.getFloat)
     of JString:
-      s.dumpHook(v.getStr)
+      jx.dumpHook(v.getStr)
     of JBool:
-      s.dumpHook(v.getBool)
+      jx.dumpHook(v.getBool)
 
 proc toJson*[T](v: T): string =
-  dumpHook(result, v)
+  let jx = JsonyContext()
+  jx.dumpHook(v)
+  jx.data
 
 template toStaticJson*(v: untyped): static[string] =
   ## This will turn v into json at compile time and return the json string.
