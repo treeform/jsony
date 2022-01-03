@@ -354,6 +354,9 @@ proc parseObject[T](s: string, i: var int, v: var T) =
       inc i
     else:
       break
+  when compiles(postHook(v)):
+    postHook(v)
+  eatChar(s, i, '}')
 
 proc parseHook*[T: tuple](s: string, i: var int, v: var T) =
   eatSpace(s, i)
