@@ -330,8 +330,7 @@ template snakeCase(s: string): string =
   const k = snakeCaseDynamic(s)
   k
 
-proc parseObject[T](s: string, i: var int, v: var T) =
-  eatChar(s, i, '{')
+proc parseObjectInner[T](s: string, i: var int, v: var T) =
   while i < s.len:
     eatSpace(s, i)
     if i < s.len and s[i] == '}':
@@ -356,13 +355,14 @@ proc parseObject[T](s: string, i: var int, v: var T) =
       break
   when compiles(postHook(v)):
     postHook(v)
-  eatChar(s, i, '}')
 
 proc parseHook*[T: tuple](s: string, i: var int, v: var T) =
   eatSpace(s, i)
   when T.isNamedTuple():
     if i < s.len and s[i] == '{':
-      parseObject(s, i, v)
+      eatChar(s, i, '{')
+      parseObjectInner(s, i, v)
+      eatChar(s, i, '}')
       return
   eatChar(s, i, '[')
   for name, value in v.fieldPairs:
@@ -405,7 +405,7 @@ proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
     elif compiles(new(v)):
       new(v)
   else:
-    # Look for the discriminatorFieldName
+    # Look for the discriminatorFieldName, then parse as normal object.
     eatSpace(s, i)
     var saveI = i
     while i < s.len:
@@ -426,30 +426,7 @@ proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
         error("No discriminator field.", i)
       eatChar(s, i, ',')
     i = saveI
-  while i < s.len:
-    eatSpace(s, i)
-    if i < s.len and s[i] == '}':
-      break
-    var key: string
-    parseHook(s, i, key)
-    eatChar(s, i, ':')
-    when compiles(renameHook(v, key)):
-      renameHook(v, key)
-    block all:
-      for k, v in v.fieldPairs:
-        if k == key or snakeCase(k) == key:
-          var v2: type(v)
-          parseHook(s, i, v2)
-          v = v2
-          break all
-      skipValue(s, i)
-    eatSpace(s, i)
-    if i < s.len and s[i] == ',':
-      inc i
-    else:
-      break
-  when compiles(postHook(v)):
-    postHook(v)
+  parseObjectInner(s, i, v)
   eatChar(s, i, '}')
 
 proc parseHook*[T](s: string, i: var int, v: var Option[T]) =
