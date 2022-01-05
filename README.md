@@ -10,7 +10,7 @@ This library has no dependencies other than the Nim standard library.
 
 ## About
 
-Real world json is *never what you want*. It might have extra fields that you don't care about. It might have missing fields requiring default values. It might change or grow new fields at any moment. Json might use `camelCase` or `snake_case`. It might use inconsistent naming.
+Real world json is _never what you want_. It might have extra fields that you don't care about. It might have missing fields requiring default values. It might change or grow new fields at any moment. Json might use `camelCase` or `snake_case`. It might use inconsistent naming.
 
 With this library you can use json your way, from the mess you get to the objects you want.
 
@@ -21,14 +21,14 @@ With this library you can use json your way, from the mess you get to the object
 
 ## Fast.
 
-Currently the Nim standard module first parses or serializes json into JsonNodes and then turns the JsonNodes into your objects with the `to()` macro. This is slower and creates unnecessary work for the garbage collector. This library skips the JsonNodes and creates the objects you want directly.
+Currently, the Nim standard module first parses or serializes json into JsonNodes and then turns the JsonNodes into your objects with the `to()` macro. This is slower and creates unnecessary work for the garbage collector. This library skips the JsonNodes and creates the objects you want directly.
 
 Another speed up comes from not using `StringStream`. Stream has a function dispatch overhead because it has to be able to switch between `StringStream` or `FileStream` at runtime. Jsony skips the overhead and just directly reads or writes to memory buffers.
 
 Another speed up comes from parsing and readings its own numbers directly from memory buffer. This allows it to bypass `string` allocations that `parseInt` or `$` create.
 
-
 ### Serialize speed
+
 ```
 name ............................... min time      avg time    std dv  times
 treeform/jsony ..................... 1.317 ms      1.365 ms    ±0.054   x100
@@ -39,6 +39,7 @@ nim std/json ....................... 8.222 ms      8.510 ms    ±0.123   x100
 ```
 
 ### Deserialize speed
+
 ```
 name ............................... min time      avg time    std dv  times
 treeform/jsony ..................... 4.134 ms      4.196 ms    ±0.052   x100
@@ -49,19 +50,19 @@ nim std/json ...................... 14.326 ms     14.473 ms    ±0.113   x100
 
 Note: If you find a faster nim json parser or serializer let me know!
 
-## Can parse or serializer most types:
+## Can parse or serialize most types:
 
-* numbers and strings
-* seq and arrays
-* objects and ref objects
-* options
-* enums
-* tuples
-* characters
-* `HashTable`s and `OrderedTable`s
-* `HashSet`s and `OrderedSet`s
-* json nodes
-* and `parseHook()` enables you to parse any type!
+- numbers and strings
+- seq and arrays
+- objects and ref objects
+- options
+- enums
+- tuples
+- characters
+- `HashTable`s and `OrderedTable`s
+- `HashSet`s and `OrderedSet`s
+- json nodes
+- and `parseHook()` enables you to parse any type!
 
 ## Not strict.
 
@@ -94,7 +95,7 @@ doAssert v.colorBlend == "red"
 
 Hooks are a powerful concept that allows you to parse json "your way" and is the main idea behind `jsony`!
 
-* Note: that hooks need to be exported to where you are parsing the json so that the parsing system can pick them up.
+- Note: that hooks need to be exported to where you are parsing the json so that the parsing system can pick them up.
 
 ### `proc newHook*()` Can be used to populate default values.
 
@@ -117,7 +118,7 @@ doAssert v.visible == "yes"
 
 ### `proc postHook*()` Can be used to run code after the object is fully parsed.
 
-Some times we need run some code after the object is created. For example to set other values based on values that where set but are not part of the json data. Maybe to sanitize the object or convert older versions to new versions. Here I need to retain the original size as I will be messing with the object's regular size:
+Sometimes we need run some code after the object is created. For example to set other values based on values that were set but are not part of the json data. Maybe to sanitize the object or convert older versions to new versions. Here I need to retain the original size as I will be messing with the object's regular size:
 
 ```nim
 type Sizer = object
@@ -211,6 +212,7 @@ let s = data.fromJson(seq[Entry])
 ```
 
 Gives us:
+
 ```
 @[
   (id: "1", count: 12, filled: 11),
@@ -219,7 +221,7 @@ Gives us:
 ]"""
 ```
 
-### `proc dumpHook*()` Can be used to serializer into custom representation.
+### `proc dumpHook*()` Can be used to serialize into custom representation.
 
 Just like reading custom data types you can also write data types with `dumpHook*()`.
 The `dumpHook()` will receive the incomplete string representation of a given serialization (here `s`).
@@ -243,19 +245,20 @@ let s = f.toJson()
 ```
 
 Gives us:
+
 ```
 "10/13"
 ```
 
 ## Static writing with `toStaticJson`.
 
-Some times you have or const json and you want to write it in a static way. There is a special function for that:
+Sometimes you have some json, and you want to write it in a static way. There is a special function for that:
 
 ```nim
 thing.toStaticJson()
 ```
 
-Make sure `thing` is a `static` or a `const` value and you will get a compile time string with your JSON.
+Make sure `thing` is a `static` or a `const` value, and you will get a compile time string with your JSON.
 
 ## Full support for case variant objects.
 
@@ -268,11 +271,11 @@ type RefNode = ref object
   of nkFloat: floatVal: float
 ```
 
-The discriminator do no have to come first, if they do come in the middle this library will scan the object, find the discriminator field, then rewind and parse the object normally.
+The discriminator does not have to come first, if they do come in the middle this library will scan the object, find the discriminator field, then rewind and parse the object normally.
 
 ## Full support for json-in-json.
 
-Some times your json objects could contain arbitrary json structures,
+Sometimes your json objects could contain arbitrary json structures,
 maybe event user defined, that could only be walked as json nodes. This library allows you to parse json-in-json were you parse some of the structure as real nim objects but leave some parts of it as Json Nodes to be walked later with code:
 
 ```nim
