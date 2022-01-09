@@ -405,7 +405,7 @@ proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
     elif compiles(new(v)):
       new(v)
   else:
-    # Look for the discriminatorFieldName, then parse as normal object.
+    # Try looking for the discriminatorFieldName, then parse as normal object.
     eatSpace(s, i)
     var saveI = i
     while i < s.len:
@@ -422,9 +422,14 @@ proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
           newHook(v)
         break
       skipValue(s, i)
-      if i < s.len and s[i] == '}':
-        error("No discriminator field.", i)
-      eatChar(s, i, ',')
+      if i < s.len and s[i] != '}':
+        eatChar(s, i, ',')
+      else:
+        when compiles(newHook(v)):
+          newHook(v)
+        elif compiles(new(v)):
+          new(v)
+        break
     i = saveI
   parseObjectInner(s, i, v)
   eatChar(s, i, '}')
