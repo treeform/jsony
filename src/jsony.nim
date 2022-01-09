@@ -279,7 +279,7 @@ proc parseHook*[T: not object](s: string, i: var int, v: var ref T) =
   new(v)
   parseHook(s, i, v[])
 
-proc skipValue(s: string, i: var int) =
+proc skipValue*(s: string, i: var int) =
   ## Used to skip values of extra fields.
   eatSpace(s, i)
   if i < s.len and s[i] == '{':
