@@ -184,13 +184,7 @@ proc parseStringFast(s: string, i: var int, v: var string) =
     inc j
 
   if ll > 0:
-    v = newString(ll)
-    var
-      at = 0
-      ss = cast[ptr UncheckedArray[char]](v[0].addr)
-    template add(ss: ptr UncheckedArray[char], c: char) =
-      ss[at] = c
-      inc at
+    v = newStringOfCap(ll)
     while i < s.len:
       let c = s[i]
       case c
@@ -200,22 +194,21 @@ proc parseStringFast(s: string, i: var int, v: var string) =
         inc i
         let c = s[i]
         case c
-        of '"', '\\', '/': ss.add(c)
-        of 'b': ss.add '\b'
-        of 'f': ss.add '\f'
-        of 'n': ss.add '\n'
-        of 'r': ss.add '\r'
-        of 't': ss.add '\t'
+        of '"', '\\', '/': v.add(c)
+        of 'b': v.add '\b'
+        of 'f': v.add '\f'
+        of 'n': v.add '\n'
+        of 'r': v.add '\r'
+        of 't': v.add '\t'
         of 'u':
           inc i
           let u = parseHexInt(s[i ..< i + 4])
           i += 3
-          for c in Rune(u).toUTF8():
-            ss.add(c)
+          v.add(Rune(u).toUTF8())
         else:
-          ss.add(c)
+          v.add(c)
       else:
-        ss.add(c)
+        v.add(c)
       inc i
 
   eatChar(s, i, '"')
