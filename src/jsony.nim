@@ -129,6 +129,26 @@ proc parseHook*(s: string, i: var int, v: var SomeFloat) =
   i += chars
   v = f
 
+proc parseUnicodeEscape(s: string, i: var int): int =
+  inc i
+  result = parseHexInt(s[i ..< i + 4])
+  i += 3
+  # Deal with UTF-16 surrogates. Most of the time strings are encoded as utf8
+  # but some APIs will reply with UTF-16 surrogate pairs which needs to be dealt
+  # with.
+  if (result and 0xfc00) == 0xd800:
+    inc i
+    if s[i] != '\\':
+      error("Found an Orphan Surrogate.", i)
+    inc i
+    if s[i] != 'u':
+      error("Found an Orphan Surrogate.", i)
+    inc i
+    let nextRune = parseHexInt(s[i ..< i + 4])
+    i += 3
+    if (nextRune and 0xfc00) == 0xdc00:
+      result = 0x10000 + (((result - 0xd800) shl 10) or (nextRune - 0xdc00))
+
 proc parseStringSlow(s: string, i: var int, v: var string) =
   while i < s.len:
     let c = s[i]
@@ -146,10 +166,7 @@ proc parseStringSlow(s: string, i: var int, v: var string) =
       of 'r': v.add '\r'
       of 't': v.add '\t'
       of 'u':
-        inc i
-        let u = parseHexInt(s[i ..< i + 4])
-        i += 3
-        v.add(Rune(u).toUTF8())
+        v.add(Rune(parseUnicodeEscape(s, i)).toUTF8())
       else:
         v.add(c)
     else:
@@ -173,10 +190,7 @@ proc parseStringFast(s: string, i: var int, v: var string) =
       let c = s[j]
       case c
       of 'u':
-        inc j
-        let u = parseHexInt(s[j ..< j + 4])
-        j += 3
-        ll += Rune(u).toUTF8().len
+        ll += Rune(parseUnicodeEscape(s, j)).toUTF8().len
       else:
         inc ll
     else:
@@ -207,10 +221,7 @@ proc parseStringFast(s: string, i: var int, v: var string) =
         of 'r': ss.add '\r'
         of 't': ss.add '\t'
         of 'u':
-          inc i
-          let u = parseHexInt(s[i ..< i + 4])
-          i += 3
-          for c in Rune(u).toUTF8():
+          for c in Rune(parseUnicodeEscape(s, i)).toUTF8():
             ss.add(c)
         else:
           ss.add(c)
