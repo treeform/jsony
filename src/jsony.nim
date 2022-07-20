@@ -1,4 +1,4 @@
-import jsony/objvar, strutils, tables, sets, unicode, json, options, parseutils, typetraits
+import jsony/objvar, strutils, tables, sets, unicode, json, options, parseutils, typetraits, macros
 
 type JsonError* = object of ValueError
 
@@ -10,6 +10,8 @@ when defined(release):
 type
   SomeTable*[K, V] = Table[K, V] | OrderedTable[K, V] |
     TableRef[K, V] | OrderedTableRef[K, V]
+
+template jsonySkip*{.pragma.}
 
 proc parseHook*[T](s: string, i: var int, v: var seq[T])
 proc parseHook*[T: enum](s: string, i: var int, v: var T)
@@ -353,11 +355,12 @@ proc parseObjectInner[T](s: string, i: var int, v: var T) =
       renameHook(v, key)
     block all:
       for k, v in v.fieldPairs:
-        if k == key or snakeCase(k) == key:
-          var v2: type(v)
-          parseHook(s, i, v2)
-          v = v2
-          break all
+        when not v.hasCustomPragma(jsonySkip):
+          if k == key or snakeCase(k) == key:
+            var v2: type(v)
+            parseHook(s, i, v2)
+            v = v2
+            break all
       skipValue(s, i)
     eatSpace(s, i)
     if i < s.len and s[i] == ',':
@@ -377,11 +380,12 @@ proc parseHook*[T: tuple](s: string, i: var int, v: var T) =
       return
   eatChar(s, i, '[')
   for name, value in v.fieldPairs:
-    eatSpace(s, i)
-    parseHook(s, i, value)
-    eatSpace(s, i)
-    if i < s.len and s[i] == ',':
-      inc i
+    when not value.hasCustomPragma(jsonySkip):
+      eatSpace(s, i)
+      parseHook(s, i, value)
+      eatSpace(s, i)
+      if i < s.len and s[i] == ',':
+        inc i
   eatChar(s, i, ']')
 
 proc parseHook*[T: enum](s: string, i: var int, v: var T) =
@@ -720,11 +724,12 @@ proc dumpHook*(s: var string, v: char) =
 proc dumpHook*(s: var string, v: tuple) =
   s.add '['
   var i = 0
-  for _, e in v.fieldPairs:
-    if i > 0:
-      s.add ','
-    s.dumpHook(e)
-    inc i
+  for k, e in v.fieldPairs:
+    when not e.hasCustomPragma(jsonySkip):
+      if i > 0:
+        s.add ','
+      s.dumpHook(e)
+      inc i
   s.add ']'
 
 proc dumpHook*(s: var string, v: enum) =
@@ -769,11 +774,12 @@ proc dumpHook*(s: var string, v: object) =
   else:
     # Normal objects.
     for k, e in v.fieldPairs:
-      if i > 0:
-        s.add ','
-      s.dumpKey(k)
-      s.dumpHook(e)
-      inc i
+      when not e.hasCustomPragma(jsonySkip):
+        if i > 0:
+          s.add ','
+        s.dumpKey(k)
+        s.dumpHook(e)
+        inc i
   s.add '}'
 
 proc dumpHook*[N, T](s: var string, v: array[N, t[T]]) =
