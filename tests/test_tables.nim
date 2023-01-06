@@ -59,6 +59,18 @@ block:
     """[{"j":"a"}]"""
 
 block: # issue 52
+  type Color = enum
+    Red = "red", Green = "green", Blue = "blue"
+  let s = """{
+    "red": 1,
+    "blue": 2 
+  }"""
+  var v = s.fromJson(Table[Color, int])
+  doAssert v.len == 2
+  doAssert v[Red] == 1
+  doAssert v[Blue] == 2
+
+block: # issue 52
   type Answer {.pure.} = enum
     A, B, C
   let a = {Answer.A: "aaaa", Answer.B: "bbb"}.toTable
