@@ -770,7 +770,7 @@ proc dumpHook*(s: var string, v: object) =
     # Normal objects.
     for k, e in v.fieldPairs:
       when compiles(skipHook(type(v), k)):
-        if skipHook(type(v), k):
+        when skipHook(type(v), k):
           discard
         else:
           if i > 0:
