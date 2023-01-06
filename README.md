@@ -250,6 +250,33 @@ Gives us:
 "10/13"
 ```
 
+### `proc skipHook*()` Can be used to skip fields when serializing an object
+
+If you want to skip some fields when serializing an object you can declare a `skipHook*()`
+
+```nim
+type
+  Conn = object
+    id: int
+  Foo = object
+    a: int
+    password: string
+    b: float
+    conn: Conn
+
+proc skipHook*(T: typedesc[Foo], key: static string): bool =
+  key in ["password", "conn"]
+
+var v = Foo(a:1, password: "12345", b:0.5, conn: Conn(id: 1))
+let s = v.toJson()
+```
+
+Gives us:
+
+```
+"{"a":1,"b":0.5}"
+```
+
 ## Static writing with `toStaticJson`.
 
 Sometimes you have some json, and you want to write it in a static way. There is a special function for that:
