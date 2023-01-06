@@ -14,7 +14,7 @@ type
 proc parseHook*[T](s: string, i: var int, v: var seq[T])
 proc parseHook*[T: enum](s: string, i: var int, v: var T)
 proc parseHook*[T: object|ref object](s: string, i: var int, v: var T)
-proc parseHook*[T](s: string, i: var int, v: var SomeTable[string, T])
+proc parseHook*[K, V](s: string, i: var int, v: var SomeTable[K, V])
 proc parseHook*[T](s: string, i: var int, v: var (SomeSet[T]|set[T]))
 proc parseHook*[T: tuple](s: string, i: var int, v: var T)
 proc parseHook*[T: array](s: string, i: var int, v: var T)
@@ -455,7 +455,7 @@ proc parseHook*[T](s: string, i: var int, v: var Option[T]) =
   parseHook(s, i, e)
   v = some(e)
 
-proc parseHook*[T](s: string, i: var int, v: var SomeTable[string, T]) =
+proc parseHook*[K, V](s: string, i: var int, v: var SomeTable[K, V]) =
   ## Parse an object.
   when compiles(new(v)):
     new(v)
@@ -464,10 +464,10 @@ proc parseHook*[T](s: string, i: var int, v: var SomeTable[string, T]) =
     eatSpace(s, i)
     if i < s.len and s[i] == '}':
       break
-    var key: string
+    var key: K
     parseHook(s, i, key)
     eatChar(s, i, ':')
-    var element: T
+    var element: V
     parseHook(s, i, element)
     v[key] = element
     if i < s.len and s[i] == ',':
