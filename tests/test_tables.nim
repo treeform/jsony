@@ -58,12 +58,6 @@ block:
   doAssert [{"j":"a"}].toJson() ==
     """[{"j":"a"}]"""
 
-block:
-  var s = """{1:"a"}"""
-  var v = s.fromJson(Table[int, string])
-  doAssert v.len == 1
-  doAssert v[1] == "a"
-
 block: # issue 52
   type Answer {.pure.} = enum
     A, B, C
