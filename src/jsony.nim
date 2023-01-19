@@ -116,8 +116,8 @@ proc parseHook*(s: string, i: var int, v: var SomeSignedInt) =
       parseHook(s, i, v2)
       try:
         v = type(v)(v2)
-      except:
-        error("Number type to small to contain the number.", i)
+      except CatchableError:
+        error("Number type too small to contain the number.", i)
 
 proc parseHook*(s: string, i: var int, v: var SomeFloat) =
   ## Will parse float32 and float64.
@@ -394,13 +394,13 @@ proc parseHook*[T: enum](s: string, i: var int, v: var T) =
     else:
       try:
         v = parseEnum[T](strV)
-      except:
+      except CatchableError:
         error("Can't parse enum.", i)
   else:
     try:
       strV = parseSymbol(s, i)
       v = T(parseInt(strV))
-    except:
+    except CatchableError:
       error("Can't parse enum.", i)
 
 proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
