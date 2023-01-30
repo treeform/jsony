@@ -2,22 +2,7 @@
 # nim js -r .\tests\all.nim
 # nim cpp -r .\tests\all.nim
 
-import test_arrays
-import test_char
-import test_enums
-import test_errors
-import test_fast_numbers
-import test_json_in_json
-import test_numbers
-import test_objects
-import test_options
-import test_parseHook
-import test_sets
-import test_strings
-import test_tables
-import test_tojson
-import test_tuples
-import test_refs
-import test_rawjson
-
+import test_arrays, test_char, test_enums, test_errors, test_fast_numbers,
+    test_json_in_json, test_numbers, test_objects, test_options, test_parseHook,
+    test_rawjson, test_refs, test_sets, test_strings, test_tables, test_tojson, test_tuples
 echo "all tests pass"

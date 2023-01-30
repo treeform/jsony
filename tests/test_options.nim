@@ -1,4 +1,4 @@
-import options, jsony
+import jsony, options
 
 var
   a: Option[int] = some(123)
@@ -27,8 +27,8 @@ check(1.uint32)
 check(1.uint64)
 
 check("hello")
-check([1,2,3])
-check(@[1,2,3])
+check([1, 2, 3])
+check(@[1, 2, 3])
 
 type Entry = object
   color: string
