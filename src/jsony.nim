@@ -1,4 +1,4 @@
-import jsony/objvar, strutils, tables, sets, unicode, json, options, parseutils, typetraits
+import jsony/objvar, std/strutils, std/tables, std/sets, std/unicode, std/json, std/options, std/parseutils, std/typetraits
 
 type JsonError* = object of ValueError
 
@@ -10,6 +10,7 @@ when defined(release):
 type
   SomeTable*[K, V] = Table[K, V] | OrderedTable[K, V] |
     TableRef[K, V] | OrderedTableRef[K, V]
+  RawJson* = distinct string
 
 proc parseHook*[T](s: string, i: var int, v: var seq[T])
 proc parseHook*[T: enum](s: string, i: var int, v: var T)
@@ -841,6 +842,14 @@ proc dumpHook*(s: var string, v: JsonNode) =
       s.dumpHook(v.getStr)
     of JBool:
       s.dumpHook(v.getBool)
+
+proc parseHook*(s: string, i: var int, v: var RawJson) =
+  let oldI = i
+  skipValue(s, i)
+  v = s[oldI ..< i].RawJson
+
+proc dumpHook*(s: var string, v: RawJson) =
+  s.add v.string
 
 proc toJson*[T](v: T): string =
   dumpHook(result, v)
