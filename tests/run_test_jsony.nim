@@ -1,8 +1,6 @@
 # Rebuild with: nim c -d:release
 
-import json
-import os
-
+import json, os
 let fn = os.paramStr(1)
 
 try:

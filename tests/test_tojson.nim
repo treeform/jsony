@@ -1,4 +1,4 @@
-import jsony, strutils, json, tables
+import json, jsony, strutils, tables
 
 proc match[T](what: T) =
   doAssert what.toJson() == $(%what)
@@ -84,17 +84,17 @@ doAssert f.toJson() == "\"10/13\""
 
 block:
   type
-    NodeNumKind = enum  # the different node types
-      nkInt,          # a leaf with an integer value
-      nkFloat,        # a leaf with a float value
+    NodeNumKind = enum # the different node types
+      nkInt,           # a leaf with an integer value
+      nkFloat,         # a leaf with a float value
     RefNode = ref object
       active: bool
-      case kind: NodeNumKind  # the ``kind`` field is the discriminator
+      case kind: NodeNumKind # the ``kind`` field is the discriminator
       of nkInt: intVal: int
       of nkFloat: floatVal: float
     ValueNode = object
       active: bool
-      case kind: NodeNumKind  # the ``kind`` field is the discriminator
+      case kind: NodeNumKind # the ``kind`` field is the discriminator
       of nkInt: intVal: int
       of nkFloat: floatVal: float
 

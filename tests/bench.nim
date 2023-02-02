@@ -1,6 +1,4 @@
-import benchy, random, streams, macros
-import jsony, jason
-import eminim
+import benchy, eminim, jason, jsony, macros, random, streams
 when defined(packedjson):
   import packedjson, packedjson/deserialiser
 else:

@@ -167,17 +167,17 @@ doAssert sizer.originalSize == 10
 block:
 
   type
-    NodeNumKind = enum  # the different node types
-      nkInt,          # a leaf with an integer value
-      nkFloat,        # a leaf with a float value
+    NodeNumKind = enum # the different node types
+      nkInt,           # a leaf with an integer value
+      nkFloat,         # a leaf with a float value
     RefNode = ref object
       active: bool
-      case kind: NodeNumKind  # the ``kind`` field is the discriminator
+      case kind: NodeNumKind # the ``kind`` field is the discriminator
       of nkInt: intVal: int
       of nkFloat: floatVal: float
     ValueNode = object
       active: bool
-      case kind: NodeNumKind  # the ``kind`` field is the discriminator
+      case kind: NodeNumKind # the ``kind`` field is the discriminator
       of nkInt: intVal: int
       of nkFloat: floatVal: float
 
@@ -230,19 +230,19 @@ block:
     doAssert a.kind == nkInt
 
 type
-    NodeNumKind = enum  # the different node types
-      nkInt,          # a leaf with an integer value
-      nkFloat,        # a leaf with a float value
-    RefNode = ref object
-      active: bool
-      case kind: NodeNumKind  # the ``kind`` field is the discriminator
-      of nkInt: intVal: int
-      of nkFloat: floatVal: float
-    ValueNode = object
-      active: bool
-      case kind: NodeNumKind  # the ``kind`` field is the discriminator
-      of nkInt: intVal: int
-      of nkFloat: floatVal: float
+  NodeNumKind = enum # the different node types
+    nkInt,           # a leaf with an integer value
+    nkFloat,         # a leaf with a float value
+  RefNode = ref object
+    active: bool
+    case kind: NodeNumKind # the ``kind`` field is the discriminator
+    of nkInt: intVal: int
+    of nkFloat: floatVal: float
+  ValueNode = object
+    active: bool
+    case kind: NodeNumKind # the ``kind`` field is the discriminator
+    of nkInt: intVal: int
+    of nkFloat: floatVal: float
 
 proc renameHook*(v: var RefNode|ValueNode, fieldName: var string) =
   # rename``type`` field name to ``kind``
@@ -272,11 +272,9 @@ block:
   doAssert c.kind == nkFloat
   doAssert d.kind == nkInt
 
-
 # test https://forum.nim-lang.org/t/7619
 
 import jsony
-
 type
   FooBar = object
     `Foo Bar`: string

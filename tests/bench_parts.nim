@@ -1,6 +1,4 @@
-import benchy, random, streams
-import jsony, jason
-import eminim
+import benchy, eminim, jason, jsony, random, streams
 when defined(packedjson):
   import packedjson, packedjson/deserialiser
 else:
@@ -8,7 +6,6 @@ else:
 when not defined(gcArc):
   import serialization
   import json_serialization except Json, toJson
-
 
 block:
   echo "deserialize string:"
