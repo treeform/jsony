@@ -15,6 +15,7 @@ jobs:
     - uses: jiro4989/setup-nim-action@v1
       with:
         nim-version: ${{ matrix.nim-version }}
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
     - run: nimble test -y
     - run: nimble test --gc:orc -y
     - run: nim js -r tests/all.nim
