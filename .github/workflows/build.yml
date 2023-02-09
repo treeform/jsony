@@ -6,12 +6,15 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
+        nim-version: ['1.4.0', '1.4.x', 'stable']
 
     runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v2
     - uses: jiro4989/setup-nim-action@v1
+      with:
+        nim-version: ${{ matrix.nim-version }}
     - run: nimble test -y
     - run: nimble test --gc:orc -y
     - run: nim js -r tests/all.nim

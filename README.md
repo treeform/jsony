@@ -301,7 +301,7 @@ type Entry = object
 
 ## Full support for raw-json.
 
-Sometimes you don't need to parse the json, but just send it or store it in the database. You can speed this up by using `RawJson` type. What it does is prevents full parsing of that json tree and instead returns it is a `RawJson` (`disticnt string`) type. You can then do anything you want with that. Store it in a database or pass it along to some other API. Or maybe parse it later again with jsony.
+Sometimes you don't need to parse the json, but just send it or store it in the database. You can speed this up by using `RawJson` type. What it does is prevents full parsing of that json tree and instead returns it is a `RawJson` (`distinct string`) type. You can then do anything you want with that. Store it in a database or pass it along to some other API. Or maybe parse it later again with jsony.
 
 ```nim
 import jsony
