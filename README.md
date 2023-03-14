@@ -325,3 +325,31 @@ type Entry = object
   }
 }""".fromJson(Entry)
 ```
+
+## Full support for raw-json.
+
+Sometimes you don't need to parse the json, but just send it or store it in the database. You can speed this up by using `RawJson` type. What it does is prevents full parsing of that json tree and instead returns it is a `RawJson` (`distinct string`) type. You can then do anything you want with that. Store it in a database or pass it along to some other API. Or maybe parse it later again with jsony.
+
+```nim
+import jsony
+type
+  Message = object
+    id: uint64
+    data: RawJson
+
+let
+  messageData = """{"id":123,"data":{"page":"base64","arr":[1,2,3]}}"""
+  message = messageData.fromJson(Message)
+
+# make sure raw json was not parsed
+doAssert message.data.string == """{"page":"base64","arr":[1,2,3]}"""
+
+# make sure that dumping raw json produces same result
+doAssert message.toJson() == messageData
+```
+
+You can also wait to parse the json later or maybe even with different types:
+
+```
+message.data.string.fromJson(DataPayload)
+```

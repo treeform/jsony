@@ -1,4 +1,4 @@
-import osproc, os, strutils, sequtils
+import os, osproc, sequtils, strutils
 
 # https://github.com/nst/JSONTestSuite
 # A comprehensive test suite for RFC 8259 compliant JSON parsers

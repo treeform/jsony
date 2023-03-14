@@ -1,4 +1,5 @@
-import jsony/objvar, strutils, tables, sets, unicode, json, options, parseutils, typetraits
+import jsony/objvar, std/json, std/options, std/parseutils, std/sets,
+    std/strutils, std/tables, std/typetraits, std/unicode
 
 type JsonError* = object of ValueError
 
@@ -10,6 +11,7 @@ when defined(release):
 type
   SomeTable*[K, V] = Table[K, V] | OrderedTable[K, V] |
     TableRef[K, V] | OrderedTableRef[K, V]
+  RawJson* = distinct string
 
 proc parseHook*[T](s: string, i: var int, v: var seq[T])
 proc parseHook*[T: enum](s: string, i: var int, v: var T)
@@ -73,10 +75,19 @@ proc parseHook*(s: string, i: var int, v: var bool) =
   else:
     # Its faster to do char by char scan:
     eatSpace(s, i)
-    if i + 3 < s.len and s[i+0] == 't' and s[i+1] == 'r' and s[i+2] == 'u' and s[i+3] == 'e':
+    if i + 3 < s.len and
+        s[i+0] == 't' and
+        s[i+1] == 'r' and
+        s[i+2] == 'u' and
+        s[i+3] == 'e':
       i += 4
       v = true
-    elif i + 4 < s.len and s[i+0] == 'f' and s[i+1] == 'a' and s[i+2] == 'l' and s[i+3] == 's' and s[i+4] == 'e':
+    elif i + 4 < s.len and
+        s[i+0] == 'f' and
+        s[i+1] == 'a' and
+        s[i+2] == 'l' and
+        s[i+3] == 's' and
+        s[i+4] == 'e':
       i += 5
       v = false
     else:
@@ -234,7 +245,11 @@ proc parseStringFast(s: string, i: var int, v: var string) =
 proc parseHook*(s: string, i: var int, v: var string) =
   ## Parse string.
   eatSpace(s, i)
-  if i + 3 < s.len and s[i+0] == 'n' and s[i+1] == 'u' and s[i+2] == 'l' and s[i+3] == 'l':
+  if i + 3 < s.len and
+      s[i+0] == 'n' and
+      s[i+1] == 'u' and
+      s[i+2] == 'l' and
+      s[i+3] == 'l':
     i += 4
     return
   eatChar(s, i, '"')
@@ -284,7 +299,11 @@ proc parseHook*[T: array](s: string, i: var int, v: var T) =
 
 proc parseHook*[T: not object](s: string, i: var int, v: var ref T) =
   eatSpace(s, i)
-  if i + 3 < s.len and s[i+0] == 'n' and s[i+1] == 'u' and s[i+2] == 'l' and s[i+3] == 'l':
+  if i + 3 < s.len and
+      s[i+0] == 'n' and
+      s[i+1] == 'u' and
+      s[i+2] == 'l' and
+      s[i+3] == 'l':
     i += 4
     return
   new(v)
@@ -406,7 +425,11 @@ proc parseHook*[T: enum](s: string, i: var int, v: var T) =
 proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
   ## Parse an object or ref object.
   eatSpace(s, i)
-  if i + 3 < s.len and s[i+0] == 'n' and s[i+1] == 'u' and s[i+2] == 'l' and s[i+3] == 'l':
+  if i + 3 < s.len and
+      s[i+0] == 'n' and
+      s[i+1] == 'u' and
+      s[i+2] == 'l' and
+      s[i+3] == 'l':
     i += 4
     return
   eatChar(s, i, '{')
@@ -448,7 +471,11 @@ proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
 proc parseHook*[T](s: string, i: var int, v: var Option[T]) =
   ## Parse an Option.
   eatSpace(s, i)
-  if i + 3 < s.len and s[i+0] == 'n' and s[i+1] == 'u' and s[i+2] == 'l' and s[i+3] == 'l':
+  if i + 3 < s.len and
+      s[i+0] == 'n' and
+      s[i+1] == 'u' and
+      s[i+2] == 'l' and
+      s[i+3] == 'l':
     i += 4
     return
   var e: T
@@ -575,7 +602,7 @@ proc dumpHook*(s: var string, v: string)
 proc dumpHook*(s: var string, v: char)
 proc dumpHook*(s: var string, v: tuple)
 proc dumpHook*(s: var string, v: enum)
-type t[T] = tuple[a:string, b:T]
+type t[T] = tuple[a: string, b: T]
 proc dumpHook*[N, T](s: var string, v: array[N, t[T]])
 proc dumpHook*[N, T](s: var string, v: array[N, T])
 proc dumpHook*[T](s: var string, v: seq[T])
@@ -852,6 +879,14 @@ proc dumpHook*(s: var string, v: JsonNode) =
     of JBool:
       s.dumpHook(v.getBool)
 
+proc parseHook*(s: string, i: var int, v: var RawJson) =
+  let oldI = i
+  skipValue(s, i)
+  v = s[oldI ..< i].RawJson
+
+proc dumpHook*(s: var string, v: RawJson) =
+  s.add v.string
+
 proc toJson*[T](v: T): string =
   dumpHook(result, v)
 
@@ -869,7 +904,6 @@ template toStaticJson*(v: untyped): static[string] =
 #   ## This will turn v into json at compile time and return the json string.
 #   const s = v.toJsonDynamic()
 #   s
-
 
 when defined(release):
   {.pop.}

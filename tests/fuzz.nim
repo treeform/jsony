@@ -1,5 +1,4 @@
-import os, strutils, random, strformat, tables, jsony
-
+import jsony, os, random, strformat, strutils, tables
 
 type
   NodeKind = enum

@@ -1,4 +1,4 @@
-import jsony, jason, benchy
+import benchy, jason, jsony
 
 const
   number11 = 11

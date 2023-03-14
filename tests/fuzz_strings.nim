@@ -1,4 +1,4 @@
-import random, jsony, unicode
+import jsony, random, unicode
 
 randomize()
 

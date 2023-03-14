@@ -58,7 +58,7 @@ proc dumpHook*(s: var string, v: object) =
 
 var foo = Foo(
   idRef: "0000-1234",
-  bar1Object: some(Bar(nameOfThing:"Bar", arr: @[1, 2, 3]))
+  bar1Object: some(Bar(nameOfThing: "Bar", arr: @[1, 2, 3]))
 )
 
 echo foo.toJson()
