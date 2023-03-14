@@ -63,12 +63,12 @@ block: # issue 52
     Red = "red", Green = "green", Blue = "blue"
   let s = """{
     "red": 1,
-    "blue": 2 
+    "blue": 3
   }"""
   var v = s.fromJson(Table[Color, int])
   doAssert v.len == 2
   doAssert v[Red] == 1
-  doAssert v[Blue] == 2
+  doAssert v[Blue] == 3
 
 block: # issue 52
   type Answer {.pure.} = enum
