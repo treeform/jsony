@@ -16,7 +16,7 @@ type
 proc parseHook*[T](s: string, i: var int, v: var seq[T])
 proc parseHook*[T: enum](s: string, i: var int, v: var T)
 proc parseHook*[T: object|ref object](s: string, i: var int, v: var T)
-proc parseHook*[T](s: string, i: var int, v: var SomeTable[string, T])
+proc parseHook*[T, U](s: string, i: var int, v: var SomeTable[U, T])
 proc parseHook*[T](s: string, i: var int, v: var (SomeSet[T]|set[T]))
 proc parseHook*[T: tuple](s: string, i: var int, v: var T)
 proc parseHook*[T: array](s: string, i: var int, v: var T)
@@ -482,7 +482,7 @@ proc parseHook*[T](s: string, i: var int, v: var Option[T]) =
   parseHook(s, i, e)
   v = some(e)
 
-proc parseHook*[T](s: string, i: var int, v: var SomeTable[string, T]) =
+proc parseHook*[T, U](s: string, i: var int, v: var SomeTable[U, T]) =
   ## Parse an object.
   when compiles(new(v)):
     new(v)
@@ -491,8 +491,12 @@ proc parseHook*[T](s: string, i: var int, v: var SomeTable[string, T]) =
     eatSpace(s, i)
     if i < s.len and s[i] == '}':
       break
-    var key: string
+    var key: U
+    when U isnot string:
+      eatChar(s, i, '"')
     parseHook(s, i, key)
+    when U isnot string:
+      eatChar(s, i, '"')
     eatChar(s, i, ':')
     var element: T
     parseHook(s, i, element)
@@ -602,8 +606,6 @@ proc dumpHook*(s: var string, v: string)
 proc dumpHook*(s: var string, v: char)
 proc dumpHook*(s: var string, v: tuple)
 proc dumpHook*(s: var string, v: enum)
-type t[T] = tuple[a: string, b: T]
-proc dumpHook*[N, T](s: var string, v: array[N, t[T]])
 proc dumpHook*[N, T](s: var string, v: array[N, T])
 proc dumpHook*[T](s: var string, v: seq[T])
 proc dumpHook*(s: var string, v: object)
@@ -789,7 +791,7 @@ proc dumpHook*(s: var string, v: object) =
     for k, e in v.pairs:
       if i > 0:
         s.add ','
-      s.dumpHook(k)
+      s.dumpHook($k)
       s.add ':'
       s.dumpHook(e)
       inc i
@@ -801,19 +803,6 @@ proc dumpHook*(s: var string, v: object) =
       s.dumpKey(k)
       s.dumpHook(e)
       inc i
-  s.add '}'
-
-proc dumpHook*[N, T](s: var string, v: array[N, t[T]]) =
-  s.add '{'
-  var i = 0
-  # Normal objects.
-  for (k, e) in v:
-    if i > 0:
-      s.add ','
-    s.dumpHook(k)
-    s.add ':'
-    s.dumpHook(e)
-    inc i
   s.add '}'
 
 proc dumpHook*(s: var string, v: ref) =
