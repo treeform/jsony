@@ -9,27 +9,49 @@ when defined(release):
   {.push checks: off, inline.}
 
 type
+  SomeInputString* = string | cstring | openArray[char] | seq[char]
   SomeTable*[K, V] = Table[K, V] | OrderedTable[K, V] |
     TableRef[K, V] | OrderedTableRef[K, V]
   RawJson* = distinct string
 
-proc parseHook*[T](s: string, i: var int, v: var seq[T])
-proc parseHook*[T: enum](s: string, i: var int, v: var T)
-proc parseHook*[T: object|ref object](s: string, i: var int, v: var T)
-proc parseHook*[T](s: string, i: var int, v: var SomeTable[string, T])
-proc parseHook*[T](s: string, i: var int, v: var (SomeSet[T]|set[T]))
-proc parseHook*[T: tuple](s: string, i: var int, v: var T)
-proc parseHook*[T: array](s: string, i: var int, v: var T)
-proc parseHook*[T: not object](s: string, i: var int, v: var ref T)
-proc parseHook*(s: string, i: var int, v: var JsonNode)
-proc parseHook*(s: string, i: var int, v: var char)
-proc parseHook*[T: distinct](s: string, i: var int, v: var T)
+proc parseHook*[T](s: SomeInputString, i: var int, v: var seq[T])
+proc parseHook*[T: enum](s: SomeInputString, i: var int, v: var T)
+proc parseHook*[T: object|ref object](s: SomeInputString, i: var int, v: var T)
+proc parseHook*[T](s: SomeInputString, i: var int, v: var SomeTable[string, T])
+proc parseHook*[T](s: SomeInputString, i: var int, v: var (SomeSet[T]|set[T]))
+proc parseHook*[T: tuple](s: SomeInputString, i: var int, v: var T)
+proc parseHook*[T: array](s: SomeInputString, i: var int, v: var T)
+proc parseHook*[T: not object](s: SomeInputString, i: var int, v: var ref T)
+proc parseHook*(s: SomeInputString, i: var int, v: var JsonNode)
+proc parseHook*(s: SomeInputString, i: var int, v: var char)
+proc parseHook*[T: distinct](s: SomeInputString, i: var int, v: var T)
+
+
+template whenJSorVM(isTrue, isFalse: untyped) = # TODO: replace with a macro
+  when nimvm:
+    isTrue
+  else:
+    when (defined(js) or defined(nimdoc) or defined(nimscript)):
+      isTrue
+    else:
+      isFalse
+
+# shortcut to be able to use the nim parse utils with any input string
+# TODO: replace the nim parse utils by flexible versions that work with any input string to avoid copies
+func toString(src: SomeInputString, start: int, endExclusive: int): string =  
+  ## Returns a new string with contents copied from `src`.
+  when typeof(src) is string:
+    result = src.substr(start, endExclusive-1)
+  else:
+    result.setLen(endExclusive - start)
+    for i in start ..< endExclusive:
+      result[i-start] = src[i]
 
 template error(msg: string, i: int) =
   ## Shortcut to raise an exception.
   raise newException(JsonError, msg & " At offset: " & $i)
 
-template eatSpace*(s: string, i: var int) =
+template eatSpace*(s: SomeInputString, i: var int) =
   ## Will consume whitespace.
   while i < s.len:
     let c = s[i]
@@ -37,7 +59,7 @@ template eatSpace*(s: string, i: var int) =
       break
     inc i
 
-template eatChar*(s: string, i: var int, c: char) =
+template eatChar*(s: SomeInputString, i: var int, c: char) =
   ## Will consume space before and then the character `c`.
   ## Will raise an exception if `c` is not found.
   eatSpace(s, i)
@@ -48,7 +70,7 @@ template eatChar*(s: string, i: var int, c: char) =
   else:
     error("Expected " & c & " but got " & s[i] & " instead.", i)
 
-proc parseSymbol*(s: string, i: var int): string =
+proc parseSymbol*(s: SomeInputString, i: var int): string =
   ## Will read a symbol and return it.
   ## Used for numbers and booleans.
   eatSpace(s, i)
@@ -60,9 +82,10 @@ proc parseSymbol*(s: string, i: var int): string =
     else:
       discard
     inc i
-  return s[j ..< i]
 
-proc parseHook*(s: string, i: var int, v: var bool) =
+  result = toString(s, j, i)
+
+proc parseHook*(s: SomeInputString, i: var int, v: var bool) =
   ## Will parse boolean true or false.
   when nimvm:
     case parseSymbol(s, i)
@@ -93,7 +116,7 @@ proc parseHook*(s: string, i: var int, v: var bool) =
     else:
       error("Boolean true or false expected.", i)
 
-proc parseHook*(s: string, i: var int, v: var SomeUnsignedInt) =
+proc parseHook*(s: SomeInputString, i: var int, v: var SomeUnsignedInt) =
   ## Will parse unsigned integers.
   when nimvm:
     v = type(v)(parseInt(parseSymbol(s, i)))
@@ -109,7 +132,7 @@ proc parseHook*(s: string, i: var int, v: var SomeUnsignedInt) =
       error("Number expected.", i)
     v = type(v)(v2)
 
-proc parseHook*(s: string, i: var int, v: var SomeSignedInt) =
+proc parseHook*(s: SomeInputString, i: var int, v: var SomeSignedInt) =
   ## Will parse signed integers.
   when nimvm:
     v = type(v)(parseInt(parseSymbol(s, i)))
@@ -127,20 +150,42 @@ proc parseHook*(s: string, i: var int, v: var SomeSignedInt) =
       parseHook(s, i, v2)
       try:
         v = type(v)(v2)
-      except:
+      except ValueError:
         error("Number type to small to contain the number.", i)
 
-proc parseHook*(s: string, i: var int, v: var SomeFloat) =
+proc parseHook*(s: SomeInputString, i: var int, v: var SomeFloat) =
   ## Will parse float32 and float64.
-  var f: float
   eatSpace(s, i)
-  let chars = parseutils.parseFloat(s, f, i)
-  if chars == 0:
-    error("Failed to parse a float.", i)
-  i += chars
-  v = f
+  when typeof(s) is string:
+    var f: float
+    let chars = parseFloat(s, f, i)
+    if chars == 0:
+      error("Failed to parse a float.", i)
+    i += chars
+    v = f
+  else:
+    let floatStr = parseSymbol(s, i)
+    try:
+      v = parseFloat(floatStr)
+    except ValueError:
+      error("Failed to parse a float.", i)  
 
-proc parseUnicodeEscape(s: string, i: var int): int =
+func parseHexInt(s: openArray[char]): int =
+  ## Will parse a hex number.
+  result = 0
+  for c in s:
+    result = result shl 4
+    case c
+    of '0'..'9':
+      result += c.ord - '0'.ord
+    of 'a'..'f':
+      result += c.ord - 'a'.ord + 10
+    of 'A'..'F':
+      result += c.ord - 'A'.ord + 10
+    else:
+      error("Invalid hex character: " & c, 0)
+
+proc parseUnicodeEscape(s: SomeInputString, i: var int): int =
   inc i
   result = parseHexInt(s[i ..< i + 4])
   i += 3
@@ -160,7 +205,7 @@ proc parseUnicodeEscape(s: string, i: var int): int =
     if (nextRune and 0xfc00) == 0xdc00:
       result = 0x10000 + (((result - 0xd800) shl 10) or (nextRune - 0xdc00))
 
-proc parseStringSlow(s: string, i: var int, v: var string) =
+proc parseStringSlow(s: SomeInputString, i: var int, v: var string) =
   while i < s.len:
     let c = s[i]
     case c
@@ -185,7 +230,7 @@ proc parseStringSlow(s: string, i: var int, v: var string) =
     inc i
   eatChar(s, i, '"')
 
-proc parseStringFast(s: string, i: var int, v: var string) =
+proc parseStringFast(s: SomeInputString, i: var int, v: var string) =
   # It appears to be faster to scan the string once, then allocate exact chars,
   # and then scan the string again populating it.
   var
@@ -242,7 +287,7 @@ proc parseStringFast(s: string, i: var int, v: var string) =
 
   eatChar(s, i, '"')
 
-proc parseHook*(s: string, i: var int, v: var string) =
+proc parseHook*(s: SomeInputString, i: var int, v: var string) =
   ## Parse string.
   eatSpace(s, i)
   if i + 3 < s.len and
@@ -262,14 +307,14 @@ proc parseHook*(s: string, i: var int, v: var string) =
     else:
       parseStringFast(s, i, v)
 
-proc parseHook*(s: string, i: var int, v: var char) =
+proc parseHook*(s: SomeInputString, i: var int, v: var char) =
   var str: string
   s.parseHook(i, str)
   if str.len != 1:
     error("String can't fit into a char.", i)
   v = str[0]
 
-proc parseHook*[T](s: string, i: var int, v: var seq[T]) =
+proc parseHook*[T](s: SomeInputString, i: var int, v: var seq[T]) =
   ## Parse seq.
   eatChar(s, i, '[')
   while i < s.len:
@@ -286,7 +331,7 @@ proc parseHook*[T](s: string, i: var int, v: var seq[T]) =
       break
   eatChar(s, i, ']')
 
-proc parseHook*[T: array](s: string, i: var int, v: var T) =
+proc parseHook*[T: array](s: SomeInputString, i: var int, v: var T) =
   eatSpace(s, i)
   eatChar(s, i, '[')
   for value in v.mitems:
@@ -297,7 +342,7 @@ proc parseHook*[T: array](s: string, i: var int, v: var T) =
       inc i
   eatChar(s, i, ']')
 
-proc parseHook*[T: not object](s: string, i: var int, v: var ref T) =
+proc parseHook*[T: not object](s: SomeInputString, i: var int, v: var ref T) =
   eatSpace(s, i)
   if i + 3 < s.len and
       s[i+0] == 'n' and
@@ -309,7 +354,7 @@ proc parseHook*[T: not object](s: string, i: var int, v: var ref T) =
   new(v)
   parseHook(s, i, v[])
 
-proc skipValue*(s: string, i: var int) =
+proc skipValue*(s: SomeInputString, i: var int) =
   ## Used to skip values of extra fields.
   eatSpace(s, i)
   if i < s.len and s[i] == '{':
@@ -342,7 +387,7 @@ proc skipValue*(s: string, i: var int) =
   else:
     discard parseSymbol(s, i)
 
-proc snakeCaseDynamic(s: string): string =
+proc snakeCaseDynamic(s: SomeInputString): string =
   if s.len == 0:
     return
   var prevCap = false
@@ -356,11 +401,11 @@ proc snakeCaseDynamic(s: string): string =
       prevCap = false
       result.add c
 
-template snakeCase(s: string): string =
+template snakeCase(s: SomeInputString): string =
   const k = snakeCaseDynamic(s)
   k
 
-proc parseObjectInner[T](s: string, i: var int, v: var T) =
+proc parseObjectInner[T](s: SomeInputString, i: var int, v: var T) =
   while i < s.len:
     eatSpace(s, i)
     if i < s.len and s[i] == '}':
@@ -386,7 +431,7 @@ proc parseObjectInner[T](s: string, i: var int, v: var T) =
   when compiles(postHook(v)):
     postHook(v)
 
-proc parseHook*[T: tuple](s: string, i: var int, v: var T) =
+proc parseHook*[T: tuple](s: SomeInputString, i: var int, v: var T) =
   eatSpace(s, i)
   when T.isNamedTuple():
     if i < s.len and s[i] == '{':
@@ -403,7 +448,7 @@ proc parseHook*[T: tuple](s: string, i: var int, v: var T) =
       inc i
   eatChar(s, i, ']')
 
-proc parseHook*[T: enum](s: string, i: var int, v: var T) =
+proc parseHook*[T: enum](s: SomeInputString, i: var int, v: var T) =
   eatSpace(s, i)
   var strV: string
   if i < s.len and s[i] == '"':
@@ -413,16 +458,16 @@ proc parseHook*[T: enum](s: string, i: var int, v: var T) =
     else:
       try:
         v = parseEnum[T](strV)
-      except:
+      except ValueError:
         error("Can't parse enum.", i)
   else:
     try:
       strV = parseSymbol(s, i)
       v = T(parseInt(strV))
-    except:
+    except ValueError:
       error("Can't parse enum.", i)
 
-proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
+proc parseHook*[T: object|ref object](s: SomeInputString, i: var int, v: var T) =
   ## Parse an object or ref object.
   eatSpace(s, i)
   if i + 3 < s.len and
@@ -468,7 +513,7 @@ proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
   parseObjectInner(s, i, v)
   eatChar(s, i, '}')
 
-proc parseHook*[T](s: string, i: var int, v: var Option[T]) =
+proc parseHook*[T](s: SomeInputString, i: var int, v: var Option[T]) =
   ## Parse an Option.
   eatSpace(s, i)
   if i + 3 < s.len and
@@ -482,7 +527,7 @@ proc parseHook*[T](s: string, i: var int, v: var Option[T]) =
   parseHook(s, i, e)
   v = some(e)
 
-proc parseHook*[T](s: string, i: var int, v: var SomeTable[string, T]) =
+proc parseHook*[T](s: SomeInputString, i: var int, v: var SomeTable[string, T]) =
   ## Parse an object.
   when compiles(new(v)):
     new(v)
@@ -503,7 +548,7 @@ proc parseHook*[T](s: string, i: var int, v: var SomeTable[string, T]) =
       break
   eatChar(s, i, '}')
 
-proc parseHook*[T](s: string, i: var int, v: var (SomeSet[T]|set[T])) =
+proc parseHook*[T](s: SomeInputString, i: var int, v: var (SomeSet[T]|set[T])) =
   ## Parses `HashSet`, `OrderedSet`, or a built-in `set` type.
   eatSpace(s, i)
   eatChar(s, i, '[')
@@ -519,7 +564,7 @@ proc parseHook*[T](s: string, i: var int, v: var (SomeSet[T]|set[T])) =
       inc i
   eatChar(s, i, ']')
 
-proc parseHook*(s: string, i: var int, v: var JsonNode) =
+proc parseHook*(s: SomeInputString, i: var int, v: var JsonNode) =
   ## Parses a regular json node.
   eatSpace(s, i)
   if i < s.len and s[i] == '{':
@@ -576,12 +621,12 @@ proc parseHook*(s: string, i: var int, v: var JsonNode) =
     else:
       error("Unexpected.", i)
 
-proc parseHook*[T: distinct](s: string, i: var int, v: var T) =
+proc parseHook*[T: distinct](s: SomeInputString, i: var int, v: var T) =
   var x: T.distinctBase
   parseHook(s, i, x)
   v = cast[T](x)
 
-proc fromJson*[T](s: string, x: typedesc[T]): T =
+proc fromJson*[T](s: SomeInputString, x: typedesc[T]): T =
   ## Takes json and outputs the object it represents.
   ## * Extra json fields are ignored.
   ## * Missing json fields keep their default values.
@@ -589,7 +634,7 @@ proc fromJson*[T](s: string, x: typedesc[T]): T =
   var i = 0
   s.parseHook(i, result)
 
-proc fromJson*(s: string): JsonNode =
+proc fromJson*(s: SomeInputString): JsonNode =
   ## Takes json parses it into `JsonNode`s.
   var i = 0
   s.parseHook(i, result)
