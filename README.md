@@ -4,7 +4,7 @@
 
 ![Github Actions](https://github.com/treeform/jsony/workflows/Github%20Actions/badge.svg)
 
-[API reference](https://nimdocs.com/treeform/jsony)
+[API reference](https://treeform.github.io/jsony)
 
 This library has no dependencies other than the Nim standard library.
 
