@@ -1,0 +1,47 @@
+JsonError	jsony.html#JsonError	jsony: JsonError	
+SomeTable	jsony.html#SomeTable	jsony: SomeTable	
+RawJson	jsony.html#RawJson	jsony: RawJson	
+eatSpace	jsony.html#eatSpace.t,string,int	jsony: eatSpace(s: string; i: var int)	
+eatChar	jsony.html#eatChar.t,string,int,char	jsony: eatChar(s: string; i: var int; c: char)	
+parseSymbol	jsony.html#parseSymbol,string,int	jsony: parseSymbol(s: string; i: var int): string	
+parseHook	jsony.html#parseHook,string,int,bool	jsony: parseHook(s: string; i: var int; v: var bool)	
+parseHook	jsony.html#parseHook,string,int,SomeUnsignedInt	jsony: parseHook(s: string; i: var int; v: var SomeUnsignedInt)	
+parseHook	jsony.html#parseHook,string,int,SomeSignedInt	jsony: parseHook(s: string; i: var int; v: var SomeSignedInt)	
+parseHook	jsony.html#parseHook,string,int,SomeFloat	jsony: parseHook(s: string; i: var int; v: var SomeFloat)	
+parseHook	jsony.html#parseHook,string,int,string	jsony: parseHook(s: string; i: var int; v: var string)	
+parseHook	jsony.html#parseHook,string,int,char	jsony: parseHook(s: string; i: var int; v: var char)	
+parseHook	jsony.html#parseHook,string,int,seq[T]	jsony: parseHook[T](s: string; i: var int; v: var seq[T])	
+parseHook	jsony.html#parseHook,string,int,T	jsony: parseHook[T: array](s: string; i: var int; v: var T)	
+parseHook	jsony.html#parseHook,string,int,ref.T	jsony: parseHook[T: not object](s: string; i: var int; v: var ref T)	
+skipValue	jsony.html#skipValue,string,int	jsony: skipValue(s: string; i: var int)	
+parseHook	jsony.html#parseHook,string,int,T_2	jsony: parseHook[T: tuple](s: string; i: var int; v: var T)	
+parseHook	jsony.html#parseHook,string,int,T_3	jsony: parseHook[T: enum](s: string; i: var int; v: var T)	
+parseHook	jsony.html#parseHook,string,int,T_4	jsony: parseHook[T: object | ref object](s: string; i: var int; v: var T)	
+parseHook	jsony.html#parseHook,string,int,Option[T]	jsony: parseHook[T](s: string; i: var int; v: var Option[T])	
+parseHook	jsony.html#parseHook,string,int,SomeTable[string,T]	jsony: parseHook[T](s: string; i: var int; v: var SomeTable[string, T])	
+parseHook	jsony.html#parseHook,string,int,	jsony: parseHook[T](s: string; i: var int; v: var (SomeSet[T] | set[T]))	
+parseHook	jsony.html#parseHook,string,int,JsonNode	jsony: parseHook(s: string; i: var int; v: var JsonNode)	
+parseHook	jsony.html#parseHook,string,int,T_5	jsony: parseHook[T: distinct](s: string; i: var int; v: var T)	
+fromJson	jsony.html#fromJson,string,typedesc[T]	jsony: fromJson[T](s: string; x: typedesc[T]): T	
+fromJson	jsony.html#fromJson,string	jsony: fromJson(s: string): JsonNode	
+dumpHook	jsony.html#dumpHook,string,T	jsony: dumpHook[T: distinct](s: var string; v: T)	
+dumpHook	jsony.html#dumpHook,string,bool	jsony: dumpHook(s: var string; v: bool)	
+dumpHook	jsony.html#dumpHook,string,	jsony: dumpHook(s: var string; v: uint | uint8 | uint16 | uint32 | uint64)	
+dumpHook	jsony.html#dumpHook,string,_2	jsony: dumpHook(s: var string; v: int | int8 | int16 | int32 | int64)	
+dumpHook	jsony.html#dumpHook,string,SomeFloat	jsony: dumpHook(s: var string; v: SomeFloat)	
+dumpHook	jsony.html#dumpHook,string,string	jsony: dumpHook(s: var string; v: string)	
+dumpHook	jsony.html#dumpHook,string,char	jsony: dumpHook(s: var string; v: char)	
+dumpHook	jsony.html#dumpHook,string,_3	jsony: dumpHook(s: var string; v: tuple)	
+dumpHook	jsony.html#dumpHook,string,_4	jsony: dumpHook(s: var string; v: enum)	
+dumpHook	jsony.html#dumpHook,string,array[N,T]	jsony: dumpHook[N, T](s: var string; v: array[N, T])	
+dumpHook	jsony.html#dumpHook,string,seq[T]	jsony: dumpHook[T](s: var string; v: seq[T])	
+dumpHook	jsony.html#dumpHook,string,Option[T]	jsony: dumpHook[T](s: var string; v: Option[T])	
+dumpHook	jsony.html#dumpHook,string,_5	jsony: dumpHook(s: var string; v: object)	
+dumpHook	jsony.html#dumpHook,string,array[N,t[T]]	jsony: dumpHook[N, T](s: var string; v: array[N, t[T]])	
+dumpHook	jsony.html#dumpHook,string,ref	jsony: dumpHook(s: var string; v: ref)	
+dumpHook	jsony.html#dumpHook,string,_6	jsony: dumpHook[T](s: var string; v: SomeSet[T] | set[T])	
+dumpHook	jsony.html#dumpHook,string,JsonNode	jsony: dumpHook(s: var string; v: JsonNode)	
+parseHook	jsony.html#parseHook,string,int,RawJson	jsony: parseHook(s: string; i: var int; v: var RawJson)	
+dumpHook	jsony.html#dumpHook,string,RawJson	jsony: dumpHook(s: var string; v: RawJson)	
+toJson	jsony.html#toJson,T	jsony: toJson[T](v: T): string	
+toStaticJson	jsony.html#toStaticJson.t,untyped	jsony: toStaticJson(v: untyped): static[string]	

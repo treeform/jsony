@@ -1,0 +1,6 @@
+fieldPairs	jsony/objvar.html#fieldPairs.t,T	objvar: fieldPairs[T: ref object](x: T): untyped	
+isObjectVariant	jsony/objvar.html#isObjectVariant.m,typed	objvar: isObjectVariant(v: typed): bool	
+discriminator	jsony/objvar.html#discriminator,NimNode	objvar: discriminator(v: NimNode): NimNode	
+discriminatorFieldName	jsony/objvar.html#discriminatorFieldName.m,typed	objvar: discriminatorFieldName(v: typed): untyped	
+discriminatorField	jsony/objvar.html#discriminatorField.m,typed	objvar: discriminatorField(v: typed): untyped	
+new	jsony/objvar.html#new.m,typed,typed	objvar: new(v: typed; d: typed): untyped	
