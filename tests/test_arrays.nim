@@ -30,3 +30,16 @@ block:
   var s = "null"
   var v = s.fromJson(ref array[2, string])
   doAssert v == nil
+
+block:
+  doAssert {"j": 10, "s": 20, "o": 100, "n": 5000}.toJson() ==
+    """[["j",10],["s",20],["o",100],["n",5000]]"""
+
+  doAssert {"j": "a", "s": "b", "o": "c", "n": "d"}.toJson() ==
+    """[["j","a"],["s","b"],["o","c"],["n","d"]]"""
+
+  doAssert [{"j": "a", "j": "b"}].toJson() ==
+    """[[["j","a"],["j","b"]]]"""
+
+  doAssert {10: "a"}.toJson() ==
+    """[[10,"a"]]"""
