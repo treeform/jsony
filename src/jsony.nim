@@ -73,7 +73,7 @@ proc parseHook*(s: string, i: var int, v: var bool) =
     else:
       error("Boolean true or false expected.", i)
   else:
-    # Its faster to do char by char scan:
+    # It's faster to do char by char scan:
     eatSpace(s, i)
     if i + 3 < s.len and
         s[i+0] == 't' and
@@ -127,8 +127,8 @@ proc parseHook*(s: string, i: var int, v: var SomeSignedInt) =
       parseHook(s, i, v2)
       try:
         v = type(v)(v2)
-      except:
-        error("Number type to small to contain the number.", i)
+      except CatchableError:
+        error("Number type too small to contain the number.", i)
 
 proc parseHook*(s: string, i: var int, v: var SomeFloat) =
   ## Will parse float32 and float64.
@@ -413,13 +413,13 @@ proc parseHook*[T: enum](s: string, i: var int, v: var T) =
     else:
       try:
         v = parseEnum[T](strV)
-      except:
+      except CatchableError:
         error("Can't parse enum.", i)
   else:
     try:
       strV = parseSymbol(s, i)
       v = T(parseInt(strV))
-    except:
+    except CatchableError:
       error("Can't parse enum.", i)
 
 proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
@@ -633,17 +633,17 @@ proc dumpNumberSlow(s: var string, v: uint|uint8|uint16|uint32|uint64) =
   s.add $v.uint64
 
 proc dumpNumberFast(s: var string, v: uint|uint8|uint16|uint32|uint64) =
-  # Its faster to not allocate a string for a number,
-  # but to write it out the digits directly.
+  # It's faster to not allocate a string for a number,
+  # but to write out the digits directly.
   if v == 0:
     s.add '0'
     return
-  # Max size of a uin64 number is 20 digits.
+  # Max size of a uint64 number is 20 digits.
   var digits: array[20, char]
   var v = v
   var p = 0
   while v != 0:
-    # Its faster to look up 2 digits at a time, less int divisions.
+    # It's faster to look up 2 digits at a time, less int divisions.
     let idx = v mod 100
     digits[p] = lookup[idx*2+1]
     inc p
@@ -695,7 +695,7 @@ proc dumpStrSlow(s: var string, v: string) =
   s.add '"'
 
 proc dumpStrFast(s: var string, v: string) =
-  # Its faster to grow the string only once.
+  # It's faster to grow the string only once.
   # Then fill the string with pointers.
   # Then cap it off to right length.
   var at = s.len
