@@ -844,7 +844,7 @@ proc dumpHook*[T](s: var string, v: SomeSet[T]|set[T]) =
 
 proc dumpHook*(s: var string, v: JsonNode) =
   ## Dumps a regular json node.
-  if v == nil:
+  if v.isNil:
     s.add "null"
   else:
     case v.kind:
