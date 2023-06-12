@@ -712,6 +712,10 @@ template dumpKey(s: var string, v: string) =
   const v2 = v.toJson() & ":"
   s.add v2
 
+template dumpKey(s: var string, v: enum) =
+  const v2 = '"' & $v & '"' & ":"
+  s.add v2
+
 proc dumpHook*(s: var string, v: char) =
   s.add '"'
   s.add v
@@ -762,7 +766,7 @@ proc dumpHook*(s: var string, v: object) =
     for k, e in v.pairs:
       if i > 0:
         s.add ','
-      s.dumpHook(k)
+      s.dumpKey(k)
       s.add ':'
       s.dumpHook(e)
       inc i
