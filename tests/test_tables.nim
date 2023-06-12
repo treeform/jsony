@@ -75,4 +75,4 @@ block: # issue 52
     A, B, C
   let a = {Answer.A: "aaaa", Answer.B: "bbb"}.toTable
   doAssert $(a.toJson().fromJson(Table[Answer, string])) ==
-    """{A: "aaaa", B: "bbb"}"""
+    """{"A": "aaaa", "B": "bbb"}"""
