@@ -73,6 +73,7 @@ block: # issue 52
 block: # issue 52
   type Answer {.pure.} = enum
     A, B, C
-  let a = {Answer.A: "aaaa", Answer.B: "bbb"}.toTable
+  let a = {A: "aaaa", B: "bbb"}.toTable
+  doAssert $(a.toJson()) == """{"A":"aaaa","B":"bbb"}"""
   doAssert $(a.toJson().fromJson(Table[Answer, string])) ==
-    """{"A": "aaaa", "B": "bbb"}"""
+    """{A: "aaaa", B: "bbb"}"""
