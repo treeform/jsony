@@ -1,5 +1,5 @@
 import jsony/objvar, std/json, std/options, std/parseutils, std/sets,
-    std/strutils, std/tables, std/typetraits, std/unicode
+    std/strutils, std/tables, std/typetraits, std/unicode, std/critbits
 
 type JsonError* = object of ValueError
 
@@ -10,7 +10,7 @@ when defined(release):
 
 type
   SomeTable*[K, V] = Table[K, V] | OrderedTable[K, V] |
-    TableRef[K, V] | OrderedTableRef[K, V]
+    TableRef[K, V] | OrderedTableRef[K, V] | CritBitTree[V]
   RawJson* = distinct string
 
 proc parseHook*[T](s: string, i: var int, v: var seq[T])
@@ -24,6 +24,7 @@ proc parseHook*[T: not object](s: string, i: var int, v: var ref T)
 proc parseHook*(s: string, i: var int, v: var JsonNode)
 proc parseHook*(s: string, i: var int, v: var char)
 proc parseHook*[T: distinct](s: string, i: var int, v: var T)
+proc parseHook*(s: string, i: var int, v: var CritBitTree[void])
 
 template error(msg: string, i: int) =
   ## Shortcut to raise an exception.
@@ -308,6 +309,21 @@ proc parseHook*[T: not object](s: string, i: var int, v: var ref T) =
     return
   new(v)
   parseHook(s, i, v[])
+
+proc parseHook*(s: string, i: var int, v: var CritBitTree[void]) =
+  eatSpace(s, i)
+  eatChar(s, i, '[')
+  while true:
+    eatSpace(s, i)
+    if i < s.len and s[i] == ']':
+      break
+    var e: string
+    parseHook(s, i, e)
+    v.incl(e)
+    eatSpace(s, i)
+    if i < s.len and s[i] == ',':
+      inc i
+  eatChar(s, i, ']')
 
 proc skipValue*(s: string, i: var int) =
   ## Used to skip values of extra fields.
@@ -878,6 +894,16 @@ proc dumpHook*(s: var string, v: JsonNode) =
       s.dumpHook(v.getStr)
     of JBool:
       s.dumpHook(v.getBool)
+
+proc dumpHook*(s: var string, v: CritBitTree[void]) =
+  s.add '['
+  var i = 0
+  for e in v:
+    if i != 0:
+      s.add ','
+    s.dumpHook(e)
+    inc i
+  s.add ']'
 
 proc parseHook*(s: string, i: var int, v: var RawJson) =
   let oldI = i
