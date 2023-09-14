@@ -21,3 +21,9 @@ for i in 0 ..< 100_000:
   if s.toJson().fromJson(string) != s:
     echo "some thing wrong!"
     echo repr(s)
+
+for i in 0 ..< 10_000:
+  var s = ""
+  for i in 0 ..< rand(0 .. 1_000):
+    s.add cast[char](rand(0 .. 255))
+  discard s.toJson().fromJson(string)

@@ -2,7 +2,7 @@ import jsony, os, random, strformat, strutils, tables
 
 type
   NodeKind = enum
-    nkRed, nkBlue, nkGree, nkBlack
+    nkRed, nkBlue, nkGreen, nkBlack
   Node = ref object
     active: bool
     kind: NodeKind
@@ -11,6 +11,7 @@ type
     id: int
     kids: seq[Node]
     table: Table[string, uint8]
+    body: string
 
 var r = initRand(2020)
 var genId: int
@@ -25,9 +26,10 @@ proc genTree(depth: int): Node =
   if r.rand(0 .. 1) == 0:
     result.active = true
   result.name = "node" & $result.id
-  result.kind = [nkRed, nkBlue, nkGree, nkBlack][r.rand(0 .. 3)]
+  result.kind = [nkRed, nkBlue, nkGreen, nkBlack][r.rand(0 .. 3)]
   result.table["cat"] = 4
   result.table["dog"] = 4
+  result.body = "abc🔒\n"
   if depth > 0:
     for i in 0 .. r.rand(0..3):
       result.kids.add genTree(depth - 1)
@@ -42,7 +44,7 @@ randomize()
 for i in 0 ..< 10000:
   var
     data = treeStr
-    pos = rand(data.len)
+    pos = rand(data.high)
     value = rand(255).char
     #pos = 18716
     #value = 125.char
@@ -52,25 +54,25 @@ for i in 0 ..< 10000:
   try:
     let node = data.fromJson(Node)
     doAssert node != nil
-  except JsonError:
+  except:
     discard
 
   var data2 = data[0 ..< pos]
   try:
     let node = data2.fromJson(Node)
     doAssert node != nil
-  except JsonError:
+  except:
     discard
 
   # JsonNode
   try:
     let node = data.fromJson()
     doAssert node != nil
-  except JsonError:
+  except:
     discard
 
   try:
     let node = data2.fromJson()
     doAssert node != nil
-  except JsonError:
+  except:
     discard
