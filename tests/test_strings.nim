@@ -53,3 +53,13 @@ block:
   echo "jsony - ", parsed2.content
   echo "std/json - ", parsedStd2.content
   doAssert parsed2.content == parsedStd2.content
+
+block:
+  var s = "\"\\u00\""
+  doAssertRaises jsony.JsonError:
+    discard fromJson(s, string)
+
+block:
+  var s = "\"\\"
+  doAssertRaises jsony.JsonError:
+    discard fromJson(s, string)

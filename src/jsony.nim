@@ -142,6 +142,8 @@ proc parseHook*(s: string, i: var int, v: var SomeFloat) =
 
 proc parseUnicodeEscape(s: string, i: var int): int =
   inc i
+  if i + 4 > s.len:
+    error("Expected unicode escape hex but end reached.", i)
   result = parseHexInt(s[i ..< i + 4])
   i += 3
   # Deal with UTF-16 surrogates. Most of the time strings are encoded as utf8
@@ -168,6 +170,8 @@ proc parseStringSlow(s: string, i: var int, v: var string) =
       break
     of '\\':
       inc i
+      if i >= s.len:
+        error("Expected escaped character but end reached.", i)
       let c = s[i]
       case c
       of '"', '\\', '/': v.add(c)
@@ -198,10 +202,12 @@ proc parseStringFast(s: string, i: var int, v: var string) =
       break
     of '\\':
       inc j
+      if j >= s.len:
+        error("Expected escaped character but end reached.", j)
       let c = s[j]
       case c
       of 'u':
-        ll += Rune(parseUnicodeEscape(s, j)).toUTF8().len
+        ll += Rune(parseUnicodeEscape(s, j)).size
       else:
         inc ll
     else:
