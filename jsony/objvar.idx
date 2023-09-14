@@ -1,6 +1,7 @@
-fieldPairs	jsony/objvar.html#fieldPairs.t,T	objvar: fieldPairs[T: ref object](x: T): untyped	
-isObjectVariant	jsony/objvar.html#isObjectVariant.m,typed	objvar: isObjectVariant(v: typed): bool	
-discriminator	jsony/objvar.html#discriminator,NimNode	objvar: discriminator(v: NimNode): NimNode	
-discriminatorFieldName	jsony/objvar.html#discriminatorFieldName.m,typed	objvar: discriminatorFieldName(v: typed): untyped	
-discriminatorField	jsony/objvar.html#discriminatorField.m,typed	objvar: discriminatorField(v: typed): untyped	
-new	jsony/objvar.html#new.m,typed,typed	objvar: new(v: typed; d: typed): untyped	
+nimTitle	objvar	jsony/objvar.html	module src/jsony/objvar		0
+nim	fieldPairs	jsony/objvar.html#fieldPairs.t,T	template fieldPairs[T: ref object](x: T): untyped		15
+nim	isObjectVariant	jsony/objvar.html#isObjectVariant.m,typed	macro isObjectVariant(v: typed): bool		18
+nim	discriminator	jsony/objvar.html#discriminator,NimNode	proc discriminator(v: NimNode): NimNode		30
+nim	discriminatorFieldName	jsony/objvar.html#discriminatorFieldName.m,typed	macro discriminatorFieldName(v: typed): untyped		36
+nim	discriminatorField	jsony/objvar.html#discriminatorField.m,typed	macro discriminatorField(v: typed): untyped		40
+nim	new	jsony/objvar.html#new.m,typed,typed	macro new(v: typed; d: typed): untyped		47
