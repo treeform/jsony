@@ -3,7 +3,9 @@ import jsony/objvar, std/json, std/options, std/parseutils, std/sets,
 
 type JsonError* = object of ValueError
 
-const whiteSpace = {' ', '\n', '\t', '\r'}
+const
+  whiteSpace = {' ', '\n', '\t', '\r'}
+  hex = "0123456789abcdef"
 
 when defined(release):
   {.push checks: off, inline.}
@@ -685,61 +687,105 @@ proc dumpHook*(s: var string, v: int|int8|int16|int32|int64) =
 proc dumpHook*(s: var string, v: SomeFloat) =
   s.add $v
 
-proc dumpStrSlow(s: var string, v: string) =
-  s.add '"'
-  for c in v:
-    case c:
-    of '\\': s.add r"\\"
-    of '\b': s.add r"\b"
-    of '\f': s.add r"\f"
-    of '\n': s.add r"\n"
-    of '\r': s.add r"\r"
-    of '\t': s.add r"\t"
-    of '"': s.add r"\"""
-    else:
-      s.add c
-  s.add '"'
+proc validRuneAt(s: string, i: int): Option[Rune] =
+  # Based on fastRuneAt from std/unicode
 
-proc dumpStrFast(s: var string, v: string) =
-  # Its faster to grow the string only once.
-  # Then fill the string with pointers.
-  # Then cap it off to right length.
-  var at = s.len
-  s.setLen(s.len + v.len*2+2)
+  template ones(n: untyped): untyped = ((1 shl n)-1)
 
-  var ss = cast[ptr UncheckedArray[char]](s[0].addr)
-  template add(ss: ptr UncheckedArray[char], c: char) =
-    ss[at] = c
-    inc at
-  template add(ss: ptr UncheckedArray[char], c1, c2: char) =
-    ss[at] = c1
-    inc at
-    ss[at] = c2
-    inc at
-
-  ss.add '"'
-  for c in v:
-    case c:
-    of '\\': ss.add '\\', '\\'
-    of '\b': ss.add '\\', 'b'
-    of '\f': ss.add '\\', 'f'
-    of '\n': ss.add '\\', 'n'
-    of '\r': ss.add '\\', 'r'
-    of '\t': ss.add '\\', 't'
-    of '"': ss.add '\\', '"'
-    else:
-      ss.add c
-  ss.add '"'
-  s.setLen(at)
+  if uint(s[i]) <= 127:
+    result = some(Rune(uint(s[i])))
+  elif uint(s[i]) shr 5 == 0b110:
+    if i <= s.len - 2:
+      let valid = (uint(s[i+1]) shr 6 == 0b10)
+      if valid:
+        result = some(Rune(
+          (uint(s[i]) and (ones(5))) shl 6 or
+          (uint(s[i+1]) and ones(6))
+        ))
+  elif uint(s[i]) shr 4 == 0b1110:
+    if i <= s.len - 3:
+      let valid =
+        (uint(s[i+1]) shr 6 == 0b10) and
+        (uint(s[i+2]) shr 6 == 0b10)
+      if valid:
+        result = some(Rune(
+          (uint(s[i]) and ones(4)) shl 12 or
+          (uint(s[i+1]) and ones(6)) shl 6 or
+          (uint(s[i+2]) and ones(6))
+        ))
+  elif uint(s[i]) shr 3 == 0b11110:
+    if i <= s.len - 4:
+      let valid =
+        (uint(s[i+1]) shr 6 == 0b10) and
+        (uint(s[i+2]) shr 6 == 0b10) and
+        (uint(s[i+3]) shr 6 == 0b10)
+      if valid:
+        result = some(Rune(
+          (uint(s[i]) and ones(3)) shl 18 or
+          (uint(s[i+1]) and ones(6)) shl 12 or
+          (uint(s[i+2]) and ones(6)) shl 6 or
+          (uint(s[i+3]) and ones(6))
+        ))
 
 proc dumpHook*(s: var string, v: string) =
-  when nimvm:
-    s.dumpStrSlow(v)
-  else:
-    when defined(js):
-      s.dumpStrSlow(v)
-    else:
-      s.dumpStrFast(v)
+  s.add '"'
+
+  template doCopy() =
+    if i > copyStart:
+      let numBytes = i - copyStart
+      when nimvm:
+        for p in 0 ..< numBytes:
+          s.add v[copyStart + p]
+      else:
+        when defined(js):
+          for p in 0 ..< numBytes:
+            s.add v[copyStart + p]
+        else:
+          let sLen = s.len
+          s.setLen(sLen + numBytes)
+          copyMem(s[sLen].addr, v[copyStart].unsafeAddr, numBytes)
+      copyStart = i
+
+  var i, copyStart: int
+  while i < v.len:
+    let c = v[i]
+    if (cast[uint8](c) and 0b10000000) == 0:
+      # When the high bit is not set this is a single-byte character (ASCII)
+      # Does this character need escaping?
+      if c < 32.char or c == '\\' or c == '"':
+        doCopy()
+        case c:
+        of '\\': s.add r"\\"
+        of '\b': s.add r"\b"
+        of '\f': s.add r"\f"
+        of '\n': s.add r"\n"
+        of '\r': s.add r"\r"
+        of '\t': s.add r"\t"
+        of '\v': s.add r"\u000b"
+        of '"': s.add r"\"""
+        of '\0'..'\7', '\14'..'\31':
+          s.add r"\u00"
+          s.add hex[c.int shr 4]
+          s.add hex[c.int and 0xf]
+        else:
+          discard # Not possible
+        inc i
+        copyStart = i
+      else:
+        inc i
+    else: # Multi-byte characters
+      let r = v.validRuneAt(i)
+      if r.isSome:
+        i += r.unsafeGet.size
+      else: # Not a valid rune, use replacement character
+        doCopy()
+        s.add Rune(0xfffd)
+        inc i
+        copyStart = i
+
+  doCopy()
+
+  s.add '"'
 
 template dumpKey(s: var string, v: string) =
   const v2 = v.toJson() & ":"
