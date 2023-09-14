@@ -1,4 +1,4 @@
-import json, jsony
+import std/json, jsony, std/unicode
 
 block:
   var s = """ "hello" """
@@ -63,3 +63,24 @@ block:
   var s = "\"\\"
   doAssertRaises jsony.JsonError:
     discard fromJson(s, string)
+
+block:
+  var s = ""
+  s.add cast[char](0b11000000)
+  doAssert s.toJson() == "\"" & Rune(0xfffd).toUTF8() & "\""
+
+block:
+  var s = "abc"
+  s.add cast[char](0b11000000)
+  s.add "def"
+  doAssert s.toJson() == "\"abc" & Rune(0xfffd).toUTF8() & "def\""
+
+block:
+  var s = "abc🔒"
+  s.add cast[char](0b11000000)
+  s.add "def"
+  doAssert s.toJson() == "\"abc🔒" & Rune(0xfffd).toUTF8() & "def\""
+
+block:
+  var s = "\"" & Rune(0xfffd).toUTF8() & "\""
+  doAssert fromJson(s, string).toJson() == s
