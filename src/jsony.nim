@@ -204,6 +204,76 @@ proc parseUnicodeEscape(s: string, i: var int): int =
     if (nextRune and 0xfc00) == 0xdc00:
       result = 0x10000 + (((result - 0xd800) shl 10) or (nextRune - 0xdc00))
 
+proc parseHook*(s: string, i: var int, v: var string) =
+  ## Parse string.
+  eatSpace(s, i)
+  if i + 3 < s.len and
+      s[i+0] == 'n' and
+      s[i+1] == 'u' and
+      s[i+2] == 'l' and
+      s[i+3] == 'l':
+    i += 4
+    return
+
+  eatChar(s, i, '"')
+
+  template doCopy() =
+    if i > copyStart:
+      let numBytes = i - copyStart
+      when nimvm:
+        for p in 0 ..< numBytes:
+          v.add s[copyStart + p]
+      else:
+        when defined(js):
+          for p in 0 ..< numBytes:
+            v.add s[copyStart + p]
+        else:
+          let vLen = v.len
+          v.setLen(vLen + numBytes)
+          copyMem(v[vLen].addr, s[copyStart].unsafeAddr, numBytes)
+      copyStart = i
+
+  var copyStart = i
+  while i < s.len:
+    let c = s[i]
+    if (cast[uint8](c) and 0b10000000) == 0:
+      # When the high bit is not set this is a single-byte character (ASCII)
+      case c
+      of '"':
+        break
+      of '\\':
+        if i + 1 >= s.len:
+          error("Expected escaped character but end reached.", i)
+        doCopy()
+        inc i
+        copyStart = i
+        let c = s[i]
+        case c
+        of '"', '\\', '/': v.add(c)
+        of 'b': v.add '\b'
+        of 'f': v.add '\f'
+        of 'n': v.add '\n'
+        of 'r': v.add '\r'
+        of 't': v.add '\t'
+        of 'u':
+          v.add(Rune(parseUnicodeEscape(s, i)))
+        else:
+          v.add(c)
+        inc i
+        copyStart = i
+      else:
+        inc i
+    else: # Multi-byte characters
+      let r = s.validRuneAt(i)
+      if r.isSome:
+        i += r.unsafeGet.size
+      else: # Not a valid rune
+        error("Found invalid UTF-8 character.", i)
+
+  doCopy()
+
+  eatChar(s, i, '"')
+
 proc parseHook*(s: string, i: var int, v: var char) =
   var str: string
   s.parseHook(i, str)
