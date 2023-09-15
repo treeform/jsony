@@ -54,25 +54,25 @@ for i in 0 ..< 10000:
   try:
     let node = data.fromJson(Node)
     doAssert node != nil
-  except:
+  except CatchableError:
     discard
 
   var data2 = data[0 ..< pos]
   try:
     let node = data2.fromJson(Node)
     doAssert node != nil
-  except:
+  except CatchableError:
     discard
 
   # JsonNode
   try:
     let node = data.fromJson()
     doAssert node != nil
-  except:
+  except CatchableError:
     discard
 
   try:
     let node = data2.fromJson()
     doAssert node != nil
-  except:
+  except CatchableError:
     discard
