@@ -142,6 +142,46 @@ proc parseHook*(s: string, i: var int, v: var SomeFloat) =
   i += chars
   v = f
 
+proc validRuneAt(s: string, i: int): Option[Rune] =
+  # Based on fastRuneAt from std/unicode
+
+  template ones(n: untyped): untyped = ((1 shl n)-1)
+
+  if uint(s[i]) <= 127:
+    result = some(Rune(uint(s[i])))
+  elif uint(s[i]) shr 5 == 0b110:
+    if i <= s.len - 2:
+      let valid = (uint(s[i+1]) shr 6 == 0b10)
+      if valid:
+        result = some(Rune(
+          (uint(s[i]) and (ones(5))) shl 6 or
+          (uint(s[i+1]) and ones(6))
+        ))
+  elif uint(s[i]) shr 4 == 0b1110:
+    if i <= s.len - 3:
+      let valid =
+        (uint(s[i+1]) shr 6 == 0b10) and
+        (uint(s[i+2]) shr 6 == 0b10)
+      if valid:
+        result = some(Rune(
+          (uint(s[i]) and ones(4)) shl 12 or
+          (uint(s[i+1]) and ones(6)) shl 6 or
+          (uint(s[i+2]) and ones(6))
+        ))
+  elif uint(s[i]) shr 3 == 0b11110:
+    if i <= s.len - 4:
+      let valid =
+        (uint(s[i+1]) shr 6 == 0b10) and
+        (uint(s[i+2]) shr 6 == 0b10) and
+        (uint(s[i+3]) shr 6 == 0b10)
+      if valid:
+        result = some(Rune(
+          (uint(s[i]) and ones(3)) shl 18 or
+          (uint(s[i+1]) and ones(6)) shl 12 or
+          (uint(s[i+2]) and ones(6)) shl 6 or
+          (uint(s[i+3]) and ones(6))
+        ))
+
 proc parseUnicodeEscape(s: string, i: var int): int =
   inc i
   if i + 4 > s.len:
@@ -686,46 +726,6 @@ proc dumpHook*(s: var string, v: int|int8|int16|int32|int64) =
 
 proc dumpHook*(s: var string, v: SomeFloat) =
   s.add $v
-
-proc validRuneAt(s: string, i: int): Option[Rune] =
-  # Based on fastRuneAt from std/unicode
-
-  template ones(n: untyped): untyped = ((1 shl n)-1)
-
-  if uint(s[i]) <= 127:
-    result = some(Rune(uint(s[i])))
-  elif uint(s[i]) shr 5 == 0b110:
-    if i <= s.len - 2:
-      let valid = (uint(s[i+1]) shr 6 == 0b10)
-      if valid:
-        result = some(Rune(
-          (uint(s[i]) and (ones(5))) shl 6 or
-          (uint(s[i+1]) and ones(6))
-        ))
-  elif uint(s[i]) shr 4 == 0b1110:
-    if i <= s.len - 3:
-      let valid =
-        (uint(s[i+1]) shr 6 == 0b10) and
-        (uint(s[i+2]) shr 6 == 0b10)
-      if valid:
-        result = some(Rune(
-          (uint(s[i]) and ones(4)) shl 12 or
-          (uint(s[i+1]) and ones(6)) shl 6 or
-          (uint(s[i+2]) and ones(6))
-        ))
-  elif uint(s[i]) shr 3 == 0b11110:
-    if i <= s.len - 4:
-      let valid =
-        (uint(s[i+1]) shr 6 == 0b10) and
-        (uint(s[i+2]) shr 6 == 0b10) and
-        (uint(s[i+3]) shr 6 == 0b10)
-      if valid:
-        result = some(Rune(
-          (uint(s[i]) and ones(3)) shl 18 or
-          (uint(s[i+1]) and ones(6)) shl 12 or
-          (uint(s[i+2]) and ones(6)) shl 6 or
-          (uint(s[i+3]) and ones(6))
-        ))
 
 proc dumpHook*(s: var string, v: string) =
   s.add '"'
