@@ -600,11 +600,17 @@ proc fromJson*[T](s: string, x: typedesc[T]): T =
   ## * `proc newHook(foo: var ...)` Can be used to populate default values.
   var i = 0
   s.parseHook(i, result)
+  eatSpace(s, i)
+  if i != s.len:
+    error("Found non-whitespace character after JSON data.", i)
 
 proc fromJson*(s: string): JsonNode =
   ## Takes json parses it into `JsonNode`s.
   var i = 0
   s.parseHook(i, result)
+  eatSpace(s, i)
+  if i != s.len:
+    error("Found non-whitespace character after JSON data.", i)
 
 proc dumpHook*(s: var string, v: bool)
 proc dumpHook*(s: var string, v: uint|uint8|uint16|uint32|uint64)

@@ -30,3 +30,8 @@ block:
   var s = "null"
   var v = s.fromJson(ref array[2, string])
   doAssert v == nil
+
+block:
+  var s = "[1, 2, 3] asdf"
+  doAssertRaises JsonError:
+    discard s.fromJson(array[3, int])
