@@ -45,6 +45,13 @@ block:
 
   doAssert "9e-8".fromJson(float64) == 9e-8
 
+  doAssert toOpenArray(" 1.34E3 ",0, 7).fromJson(float32) == 1.34E3
+  doAssert toOpenArray(" 1.34E3 ",0, 7).fromJson(float32) == 1.34E3
+  doAssert toOpenArray(" +1.34E3 ",0, 8).fromJson(float64) == 1.34E3
+  doAssert toOpenArray(" +1.34E3 ",0, 8).fromJson(float64) == 1.34E3
+  doAssert toOpenArray(" -1.34E3 ",0, 8).fromJson(float64) == -1.34E3
+  doAssert toOpenArray(" -1.34E3 ",0, 8).fromJson(float64) == -1.34E3
+
 block:
   doAssert "[1, 2, 3]".fromJson(seq[int]) == @[1, 2, 3]
   doAssert """["hi", "bye", "maybe"]""".fromJson(seq[string]) ==
