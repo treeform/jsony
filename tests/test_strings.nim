@@ -84,3 +84,11 @@ block:
 block:
   var s = "\"" & Rune(0xfffd).toUTF8() & "\""
   doAssert fromJson(s, string).toJson() == s
+
+block:
+  var s: string
+  s.add "\""
+  s.add cast[char](0b11000000)
+  s.add "\""
+  doAssertRaises jsony.JsonError:
+    discard fromJson(s, string)

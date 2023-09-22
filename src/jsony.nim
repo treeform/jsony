@@ -142,6 +142,46 @@ proc parseHook*(s: string, i: var int, v: var SomeFloat) =
   i += chars
   v = f
 
+proc validRuneAt(s: string, i: int): Option[Rune] =
+  # Based on fastRuneAt from std/unicode
+
+  template ones(n: untyped): untyped = ((1 shl n)-1)
+
+  if uint(s[i]) <= 127:
+    result = some(Rune(uint(s[i])))
+  elif uint(s[i]) shr 5 == 0b110:
+    if i <= s.len - 2:
+      let valid = (uint(s[i+1]) shr 6 == 0b10)
+      if valid:
+        result = some(Rune(
+          (uint(s[i]) and (ones(5))) shl 6 or
+          (uint(s[i+1]) and ones(6))
+        ))
+  elif uint(s[i]) shr 4 == 0b1110:
+    if i <= s.len - 3:
+      let valid =
+        (uint(s[i+1]) shr 6 == 0b10) and
+        (uint(s[i+2]) shr 6 == 0b10)
+      if valid:
+        result = some(Rune(
+          (uint(s[i]) and ones(4)) shl 12 or
+          (uint(s[i+1]) and ones(6)) shl 6 or
+          (uint(s[i+2]) and ones(6))
+        ))
+  elif uint(s[i]) shr 3 == 0b11110:
+    if i <= s.len - 4:
+      let valid =
+        (uint(s[i+1]) shr 6 == 0b10) and
+        (uint(s[i+2]) shr 6 == 0b10) and
+        (uint(s[i+3]) shr 6 == 0b10)
+      if valid:
+        result = some(Rune(
+          (uint(s[i]) and ones(3)) shl 18 or
+          (uint(s[i+1]) and ones(6)) shl 12 or
+          (uint(s[i+2]) and ones(6)) shl 6 or
+          (uint(s[i+3]) and ones(6))
+        ))
+
 proc parseUnicodeEscape(s: string, i: var int): int =
   inc i
   if i + 4 > s.len:
@@ -164,92 +204,6 @@ proc parseUnicodeEscape(s: string, i: var int): int =
     if (nextRune and 0xfc00) == 0xdc00:
       result = 0x10000 + (((result - 0xd800) shl 10) or (nextRune - 0xdc00))
 
-proc parseStringSlow(s: string, i: var int, v: var string) =
-  while i < s.len:
-    let c = s[i]
-    case c
-    of '"':
-      break
-    of '\\':
-      inc i
-      if i >= s.len:
-        error("Expected escaped character but end reached.", i)
-      let c = s[i]
-      case c
-      of '"', '\\', '/': v.add(c)
-      of 'b': v.add '\b'
-      of 'f': v.add '\f'
-      of 'n': v.add '\n'
-      of 'r': v.add '\r'
-      of 't': v.add '\t'
-      of 'u':
-        v.add(Rune(parseUnicodeEscape(s, i)).toUTF8())
-      else:
-        v.add(c)
-    else:
-      v.add(c)
-    inc i
-  eatChar(s, i, '"')
-
-proc parseStringFast(s: string, i: var int, v: var string) =
-  # It appears to be faster to scan the string once, then allocate exact chars,
-  # and then scan the string again populating it.
-  var
-    j = i
-    ll = 0
-  while j < s.len:
-    let c = s[j]
-    case c
-    of '"':
-      break
-    of '\\':
-      inc j
-      if j >= s.len:
-        error("Expected escaped character but end reached.", j)
-      let c = s[j]
-      case c
-      of 'u':
-        ll += Rune(parseUnicodeEscape(s, j)).size
-      else:
-        inc ll
-    else:
-      inc ll
-    inc j
-
-  if ll > 0:
-    v = newString(ll)
-    var
-      at = 0
-      ss = cast[ptr UncheckedArray[char]](v[0].addr)
-    template add(ss: ptr UncheckedArray[char], c: char) =
-      ss[at] = c
-      inc at
-    while i < s.len:
-      let c = s[i]
-      case c
-      of '"':
-        break
-      of '\\':
-        inc i
-        let c = s[i]
-        case c
-        of '"', '\\', '/': ss.add(c)
-        of 'b': ss.add '\b'
-        of 'f': ss.add '\f'
-        of 'n': ss.add '\n'
-        of 'r': ss.add '\r'
-        of 't': ss.add '\t'
-        of 'u':
-          for c in Rune(parseUnicodeEscape(s, i)).toUTF8():
-            ss.add(c)
-        else:
-          ss.add(c)
-      else:
-        ss.add(c)
-      inc i
-
-  eatChar(s, i, '"')
-
 proc parseHook*(s: string, i: var int, v: var string) =
   ## Parse string.
   eatSpace(s, i)
@@ -260,15 +214,65 @@ proc parseHook*(s: string, i: var int, v: var string) =
       s[i+3] == 'l':
     i += 4
     return
+
   eatChar(s, i, '"')
 
-  when nimvm:
-    parseStringSlow(s, i, v)
-  else:
-    when defined(js):
-      parseStringSlow(s, i, v)
-    else:
-      parseStringFast(s, i, v)
+  template doCopy() =
+    if i > copyStart:
+      let numBytes = i - copyStart
+      when nimvm:
+        for p in 0 ..< numBytes:
+          v.add s[copyStart + p]
+      else:
+        when defined(js):
+          for p in 0 ..< numBytes:
+            v.add s[copyStart + p]
+        else:
+          let vLen = v.len
+          v.setLen(vLen + numBytes)
+          copyMem(v[vLen].addr, s[copyStart].unsafeAddr, numBytes)
+      copyStart = i
+
+  var copyStart = i
+  while i < s.len:
+    let c = s[i]
+    if (cast[uint8](c) and 0b10000000) == 0:
+      # When the high bit is not set this is a single-byte character (ASCII)
+      case c
+      of '"':
+        break
+      of '\\':
+        if i + 1 >= s.len:
+          error("Expected escaped character but end reached.", i)
+        doCopy()
+        inc i
+        copyStart = i
+        let c = s[i]
+        case c
+        of '"', '\\', '/': v.add(c)
+        of 'b': v.add '\b'
+        of 'f': v.add '\f'
+        of 'n': v.add '\n'
+        of 'r': v.add '\r'
+        of 't': v.add '\t'
+        of 'u':
+          v.add(Rune(parseUnicodeEscape(s, i)))
+        else:
+          v.add(c)
+        inc i
+        copyStart = i
+      else:
+        inc i
+    else: # Multi-byte characters
+      let r = s.validRuneAt(i)
+      if r.isSome:
+        i += r.unsafeGet.size
+      else: # Not a valid rune
+        error("Found invalid UTF-8 character.", i)
+
+  doCopy()
+
+  eatChar(s, i, '"')
 
 proc parseHook*(s: string, i: var int, v: var char) =
   var str: string
@@ -596,11 +600,17 @@ proc fromJson*[T](s: string, x: typedesc[T]): T =
   ## * `proc newHook(foo: var ...)` Can be used to populate default values.
   var i = 0
   s.parseHook(i, result)
+  eatSpace(s, i)
+  if i != s.len:
+    error("Found non-whitespace character after JSON data.", i)
 
 proc fromJson*(s: string): JsonNode =
   ## Takes json parses it into `JsonNode`s.
   var i = 0
   s.parseHook(i, result)
+  eatSpace(s, i)
+  if i != s.len:
+    error("Found non-whitespace character after JSON data.", i)
 
 proc dumpHook*(s: var string, v: bool)
 proc dumpHook*(s: var string, v: uint|uint8|uint16|uint32|uint64)
@@ -686,46 +696,6 @@ proc dumpHook*(s: var string, v: int|int8|int16|int32|int64) =
 
 proc dumpHook*(s: var string, v: SomeFloat) =
   s.add $v
-
-proc validRuneAt(s: string, i: int): Option[Rune] =
-  # Based on fastRuneAt from std/unicode
-
-  template ones(n: untyped): untyped = ((1 shl n)-1)
-
-  if uint(s[i]) <= 127:
-    result = some(Rune(uint(s[i])))
-  elif uint(s[i]) shr 5 == 0b110:
-    if i <= s.len - 2:
-      let valid = (uint(s[i+1]) shr 6 == 0b10)
-      if valid:
-        result = some(Rune(
-          (uint(s[i]) and (ones(5))) shl 6 or
-          (uint(s[i+1]) and ones(6))
-        ))
-  elif uint(s[i]) shr 4 == 0b1110:
-    if i <= s.len - 3:
-      let valid =
-        (uint(s[i+1]) shr 6 == 0b10) and
-        (uint(s[i+2]) shr 6 == 0b10)
-      if valid:
-        result = some(Rune(
-          (uint(s[i]) and ones(4)) shl 12 or
-          (uint(s[i+1]) and ones(6)) shl 6 or
-          (uint(s[i+2]) and ones(6))
-        ))
-  elif uint(s[i]) shr 3 == 0b11110:
-    if i <= s.len - 4:
-      let valid =
-        (uint(s[i+1]) shr 6 == 0b10) and
-        (uint(s[i+2]) shr 6 == 0b10) and
-        (uint(s[i+3]) shr 6 == 0b10)
-      if valid:
-        result = some(Rune(
-          (uint(s[i]) and ones(3)) shl 18 or
-          (uint(s[i+1]) and ones(6)) shl 12 or
-          (uint(s[i+2]) and ones(6)) shl 6 or
-          (uint(s[i+3]) and ones(6))
-        ))
 
 proc dumpHook*(s: var string, v: string) =
   s.add '"'
