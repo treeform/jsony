@@ -20,32 +20,32 @@ nim	parseHook	jsony.html#parseHook,string,int,bool	proc parseHook(s: string; i: 
 nim	parseHook	jsony.html#parseHook,string,int,SomeUnsignedInt	proc parseHook(s: string; i: var int; v: var SomeUnsignedInt)		98
 nim	parseHook	jsony.html#parseHook,string,int,SomeSignedInt	proc parseHook(s: string; i: var int; v: var SomeSignedInt)		114
 nim	parseHook	jsony.html#parseHook,string,int,SomeFloat	proc parseHook(s: string; i: var int; v: var SomeFloat)		135
-nim	parseHook	jsony.html#parseHook,string,int,string	proc parseHook(s: string; i: var int; v: var string)		253
-nim	skipValue	jsony.html#skipValue,string,int	proc skipValue(s: string; i: var int)		320
-nim	parseHook	jsony.html#parseHook,string,int,Option[T]	proc parseHook[T](s: string; i: var int; v: var Option[T])		479
-nim	fromJson	jsony.html#fromJson,string,typedesc[T]	proc fromJson[T](s: string; x: typedesc[T]): T		592
-nim	fromJson	jsony.html#fromJson,string	proc fromJson(s: string): JsonNode		600
-nim	dumpHook	jsony.html#dumpHook,string,bool	proc dumpHook(s: var string; v: bool)		605
-nim	dumpHook	jsony.html#dumpHook,string,	proc dumpHook(s: var string; v: uint | uint8 | uint16 | uint32 | uint64)		606
-nim	dumpHook	jsony.html#dumpHook,string,_2	proc dumpHook(s: var string; v: int | int8 | int16 | int32 | int64)		607
-nim	dumpHook	jsony.html#dumpHook,string,SomeFloat	proc dumpHook(s: var string; v: SomeFloat)		608
-nim	dumpHook	jsony.html#dumpHook,string,string	proc dumpHook(s: var string; v: string)		609
-nim	dumpHook	jsony.html#dumpHook,string,char	proc dumpHook(s: var string; v: char)		610
-nim	dumpHook	jsony.html#dumpHook,string,_3	proc dumpHook(s: var string; v: tuple)		611
-nim	dumpHook	jsony.html#dumpHook,string,_4	proc dumpHook(s: var string; v: enum)		612
-nim	dumpHook	jsony.html#dumpHook,string,array[N,t[T]]	proc dumpHook[N, T](s: var string; v: array[N, t[T]])		614
-nim	dumpHook	jsony.html#dumpHook,string,array[N,T]	proc dumpHook[N, T](s: var string; v: array[N, T])		615
-nim	dumpHook	jsony.html#dumpHook,string,seq[T]	proc dumpHook[T](s: var string; v: seq[T])		616
-nim	dumpHook	jsony.html#dumpHook,string,_5	proc dumpHook(s: var string; v: object)		617
-nim	dumpHook	jsony.html#dumpHook,string,ref	proc dumpHook(s: var string; v: ref)		618
-nim	dumpHook	jsony.html#dumpHook,string,T	proc dumpHook[T: distinct](s: var string; v: T)		619
-nim	dumpHook	jsony.html#dumpHook,string,Option[T]	proc dumpHook[T](s: var string; v: Option[T])		830
-nim	dumpHook	jsony.html#dumpHook,string,_6	proc dumpHook[T](s: var string; v: SomeSet[T] | set[T])		887
-nim	dumpHook	jsony.html#dumpHook,string,JsonNode	proc dumpHook(s: var string; v: JsonNode)		897
-nim	parseHook	jsony.html#parseHook,string,int,RawJson	proc parseHook(s: string; i: var int; v: var RawJson)		934
-nim	dumpHook	jsony.html#dumpHook,string,RawJson	proc dumpHook(s: var string; v: RawJson)		939
-nim	toJson	jsony.html#toJson,T	proc toJson[T](v: T): string		942
-nim	toStaticJson	jsony.html#toStaticJson.t,untyped	template toStaticJson(v: untyped): static[string]		945
-nimgrp	fromjson	jsony.html#fromJson-procs-all	proc		592
-nimgrp	dumphook	jsony.html#dumpHook-procs-all	proc		605
+nim	parseHook	jsony.html#parseHook,string,int,string	proc parseHook(s: string; i: var int; v: var string)		207
+nim	skipValue	jsony.html#skipValue,string,int	proc skipValue(s: string; i: var int)		324
+nim	parseHook	jsony.html#parseHook,string,int,Option[T]	proc parseHook[T](s: string; i: var int; v: var Option[T])		483
+nim	fromJson	jsony.html#fromJson,string,typedesc[T]	proc fromJson[T](s: string; x: typedesc[T]): T		596
+nim	fromJson	jsony.html#fromJson,string	proc fromJson(s: string): JsonNode		607
+nim	dumpHook	jsony.html#dumpHook,string,bool	proc dumpHook(s: var string; v: bool)		615
+nim	dumpHook	jsony.html#dumpHook,string,	proc dumpHook(s: var string; v: uint | uint8 | uint16 | uint32 | uint64)		616
+nim	dumpHook	jsony.html#dumpHook,string,_2	proc dumpHook(s: var string; v: int | int8 | int16 | int32 | int64)		617
+nim	dumpHook	jsony.html#dumpHook,string,SomeFloat	proc dumpHook(s: var string; v: SomeFloat)		618
+nim	dumpHook	jsony.html#dumpHook,string,string	proc dumpHook(s: var string; v: string)		619
+nim	dumpHook	jsony.html#dumpHook,string,char	proc dumpHook(s: var string; v: char)		620
+nim	dumpHook	jsony.html#dumpHook,string,_3	proc dumpHook(s: var string; v: tuple)		621
+nim	dumpHook	jsony.html#dumpHook,string,_4	proc dumpHook(s: var string; v: enum)		622
+nim	dumpHook	jsony.html#dumpHook,string,array[N,t[T]]	proc dumpHook[N, T](s: var string; v: array[N, t[T]])		624
+nim	dumpHook	jsony.html#dumpHook,string,array[N,T]	proc dumpHook[N, T](s: var string; v: array[N, T])		625
+nim	dumpHook	jsony.html#dumpHook,string,seq[T]	proc dumpHook[T](s: var string; v: seq[T])		626
+nim	dumpHook	jsony.html#dumpHook,string,_5	proc dumpHook(s: var string; v: object)		627
+nim	dumpHook	jsony.html#dumpHook,string,ref	proc dumpHook(s: var string; v: ref)		628
+nim	dumpHook	jsony.html#dumpHook,string,T	proc dumpHook[T: distinct](s: var string; v: T)		629
+nim	dumpHook	jsony.html#dumpHook,string,Option[T]	proc dumpHook[T](s: var string; v: Option[T])		800
+nim	dumpHook	jsony.html#dumpHook,string,_6	proc dumpHook[T](s: var string; v: SomeSet[T] | set[T])		857
+nim	dumpHook	jsony.html#dumpHook,string,JsonNode	proc dumpHook(s: var string; v: JsonNode)		867
+nim	parseHook	jsony.html#parseHook,string,int,RawJson	proc parseHook(s: string; i: var int; v: var RawJson)		904
+nim	dumpHook	jsony.html#dumpHook,string,RawJson	proc dumpHook(s: var string; v: RawJson)		909
+nim	toJson	jsony.html#toJson,T	proc toJson[T](v: T): string		912
+nim	toStaticJson	jsony.html#toStaticJson.t,untyped	template toStaticJson(v: untyped): static[string]		915
+nimgrp	fromjson	jsony.html#fromJson-procs-all	proc		596
+nimgrp	dumphook	jsony.html#dumpHook-procs-all	proc		615
 nimgrp	parsehook	jsony.html#parseHook-procs-all	proc		18
