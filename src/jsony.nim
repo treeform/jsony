@@ -15,17 +15,24 @@ type
     TableRef[K, V] | OrderedTableRef[K, V]
   RawJson* = distinct string
 
+proc parseHook*(s: string, i: var int, v: var bool)
+proc parseHook*(s: string, i: var int, v: var SomeUnsignedInt)
+proc parseHook*(s: string, i: var int, v: var SomeSignedInt)
+proc parseHook*(s: string, i: var int, v: var SomeFloat)
+proc parseHook*(s: string, i: var int, v: var string)
+proc parseHook*(s: string, i: var int, v: var char)
 proc parseHook*[T](s: string, i: var int, v: var seq[T])
-proc parseHook*[T: enum](s: string, i: var int, v: var T)
-proc parseHook*[T: object|ref object](s: string, i: var int, v: var T)
-proc parseHook*[T](s: string, i: var int, v: var SomeTable[string, T])
-proc parseHook*[T](s: string, i: var int, v: var (SomeSet[T]|set[T]))
-proc parseHook*[T: tuple](s: string, i: var int, v: var T)
 proc parseHook*[T: array](s: string, i: var int, v: var T)
 proc parseHook*[T: not object](s: string, i: var int, v: var ref T)
+proc parseHook*[T: tuple](s: string, i: var int, v: var T)
+proc parseHook*[T: enum](s: string, i: var int, v: var T)
+proc parseHook*[T: object|ref object](s: string, i: var int, v: var T)
+proc parseHook*[T](s: string, i: var int, v: var Option[T])
+proc parseHook*[T](s: string, i: var int, v: var SomeTable[string, T])
+proc parseHook*[T](s: string, i: var int, v: var (SomeSet[T]|set[T]))
 proc parseHook*(s: string, i: var int, v: var JsonNode)
-proc parseHook*(s: string, i: var int, v: var char)
 proc parseHook*[T: distinct](s: string, i: var int, v: var T)
+proc parseHook*(s: string, i: var int, v: var RawJson)
 
 template error(msg: string, i: int) =
   ## Shortcut to raise an exception.
