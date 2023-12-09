@@ -15,17 +15,24 @@ type
     TableRef[K, V] | OrderedTableRef[K, V]
   RawJson* = distinct string
 
+proc parseHook*(s: string, i: var int, v: var bool)
+proc parseHook*(s: string, i: var int, v: var SomeUnsignedInt)
+proc parseHook*(s: string, i: var int, v: var SomeSignedInt)
+proc parseHook*(s: string, i: var int, v: var SomeFloat)
+proc parseHook*(s: string, i: var int, v: var string)
+proc parseHook*(s: string, i: var int, v: var char)
 proc parseHook*[T](s: string, i: var int, v: var seq[T])
-proc parseHook*[T: enum](s: string, i: var int, v: var T)
-proc parseHook*[T: object|ref object](s: string, i: var int, v: var T)
-proc parseHook*[T](s: string, i: var int, v: var SomeTable[string, T])
-proc parseHook*[T](s: string, i: var int, v: var (SomeSet[T]|set[T]))
-proc parseHook*[T: tuple](s: string, i: var int, v: var T)
 proc parseHook*[T: array](s: string, i: var int, v: var T)
 proc parseHook*[T: not object](s: string, i: var int, v: var ref T)
+proc parseHook*[T: tuple](s: string, i: var int, v: var T)
+proc parseHook*[T: enum](s: string, i: var int, v: var T)
+proc parseHook*[T: object|ref object](s: string, i: var int, v: var T)
+proc parseHook*[T](s: string, i: var int, v: var Option[T])
+proc parseHook*[T](s: string, i: var int, v: var SomeTable[string, T])
+proc parseHook*[T](s: string, i: var int, v: var (SomeSet[T]|set[T]))
 proc parseHook*(s: string, i: var int, v: var JsonNode)
-proc parseHook*(s: string, i: var int, v: var char)
 proc parseHook*[T: distinct](s: string, i: var int, v: var T)
+proc parseHook*(s: string, i: var int, v: var RawJson)
 
 template error(msg: string, i: int) =
   ## Shortcut to raise an exception.
@@ -612,6 +619,7 @@ proc fromJson*(s: string): JsonNode =
   if i != s.len:
     error("Found non-whitespace character after JSON data.", i)
 
+proc dumpHook*[T: distinct](s: var string, v: T)
 proc dumpHook*(s: var string, v: bool)
 proc dumpHook*(s: var string, v: uint|uint8|uint16|uint32|uint64)
 proc dumpHook*(s: var string, v: int|int8|int16|int32|int64)
@@ -622,11 +630,14 @@ proc dumpHook*(s: var string, v: tuple)
 proc dumpHook*(s: var string, v: enum)
 type t[T] = tuple[a: string, b: T]
 proc dumpHook*[N, T](s: var string, v: array[N, t[T]])
-proc dumpHook*[N, T](s: var string, v: array[N, T])
 proc dumpHook*[T](s: var string, v: seq[T])
+proc dumpHook*[T](s: var string, v: Option[T])
 proc dumpHook*(s: var string, v: object)
+proc dumpHook*[N, T](s: var string, v: array[N, T])
 proc dumpHook*(s: var string, v: ref)
-proc dumpHook*[T: distinct](s: var string, v: T)
+proc dumpHook*[T](s: var string, v: SomeSet[T]|set[T])
+proc dumpHook*(s: var string, v: JsonNode)
+proc dumpHook*(s: var string, v: RawJson)
 
 proc dumpHook*[T: distinct](s: var string, v: T) =
   var x = cast[T.distinctBase](v)
