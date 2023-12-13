@@ -758,7 +758,7 @@ proc dumpHook*(s: var string, v: string) =
   s.add '"'
 
 template dumpKey(s: var string, v: string) =
-  const v2 = v.toJson() & ":"
+  const v2 = jsony.toJson(v) & ":"
   s.add v2
 
 proc dumpHook*(s: var string, v: char) =
