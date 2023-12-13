@@ -143,12 +143,12 @@ type Color2 = enum
   c2Blue
   c2Green
 
-proc enumHook*(v: string): Color2 =
-  case v:
-  of "RED": c2Red
-  of "BLUE": c2Blue
-  of "GREEN": c2Green
-  else: c2Red
+proc enumHook*(s: string, v: var Color2) =
+  v = case s:
+    of "RED": c2Red
+    of "BLUE": c2Blue
+    of "GREEN": c2Green
+    else: c2Red
 
 doAssert """ "RED" """.fromJson(Color2) == c2Red
 doAssert """ "BLUE" """.fromJson(Color2) == c2Blue
