@@ -65,7 +65,7 @@ block: # issue 52
     "red": 1,
     "blue": 3
   }"""
-  var v = s.fromJson(Table[Color, int])
+  let v = s.fromJson(Table[Color, int])
   doAssert v.len == 2
   doAssert v[Red] == 1
   doAssert v[Blue] == 3
@@ -75,5 +75,5 @@ block: # issue 52
     A, B, C
   let a = {A: "aaaa", B: "bbb"}.toTable
   doAssert $(a.toJson()) == """{"A":"aaaa","B":"bbb"}"""
-  doAssert $(a.toJson().fromJson(Table[Answer, string])) ==
-    """{A: "aaaa", B: "bbb"}"""
+  let t = a.toJson().fromJson(Table[Answer, string])
+  doAssert t == a
