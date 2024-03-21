@@ -5,7 +5,7 @@ nim	RawJson	jsony.html#RawJson	type RawJson		16
 nim	parseHook	jsony.html#parseHook,string,int,seq[T]	proc parseHook[T](s: string; i: var int; v: var seq[T])		18
 nim	parseHook	jsony.html#parseHook,string,int,T	proc parseHook[T: enum](s: string; i: var int; v: var T)		19
 nim	parseHook	jsony.html#parseHook,string,int,T_2	proc parseHook[T: object | ref object](s: string; i: var int; v: var T)		20
-nim	parseHook	jsony.html#parseHook,string,int,SomeTable[string,T]	proc parseHook[T](s: string; i: var int; v: var SomeTable[string, T])		21
+nim	parseHook	jsony.html#parseHook,string,int,SomeTable[K: string or enum,V]	proc parseHook[K: string | enum; V](s: string; i: var int; v: var SomeTable[K, V])		21
 nim	parseHook	jsony.html#parseHook,string,int,	proc parseHook[T](s: string; i: var int; v: var (SomeSet[T] | set[T]))		22
 nim	parseHook	jsony.html#parseHook,string,int,T_3	proc parseHook[T: tuple](s: string; i: var int; v: var T)		23
 nim	parseHook	jsony.html#parseHook,string,int,T_4	proc parseHook[T: array](s: string; i: var int; v: var T)		24
