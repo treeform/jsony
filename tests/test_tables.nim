@@ -57,3 +57,23 @@ block:
 
   doAssert [{"j": "a"}].toJson() ==
     """[{"j":"a"}]"""
+
+block: # issue 52
+  type Color = enum
+    Red = "red", Green = "green", Blue = "blue"
+  let s = """{
+    "red": 1,
+    "blue": 3
+  }"""
+  let v = s.fromJson(Table[Color, int])
+  doAssert v.len == 2
+  doAssert v[Red] == 1
+  doAssert v[Blue] == 3
+
+block: # issue 52
+  type Answer {.pure.} = enum
+    A, B, C
+  let a = {A: "aaaa", B: "bbb"}.toTable
+  doAssert $(a.toJson()) == """{"A":"aaaa","B":"bbb"}"""
+  let t = a.toJson().fromJson(Table[Answer, string])
+  doAssert t == a
