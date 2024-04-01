@@ -827,6 +827,15 @@ proc dumpHook*(s: var string, v: object) =
           s.dumpKey(k)
           s.dumpHook(e)
           inc i
+      elif compiles(skipHook(e, k)):
+        if skipHook(e, k):
+          discard
+        else:
+          if i > 0:
+            s.add ','
+          s.dumpKey(k)
+          s.dumpHook(e)
+          inc i
       else:
         if i > 0:
           s.add ','
