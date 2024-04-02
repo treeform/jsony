@@ -19,6 +19,7 @@ type
   Boo = ref object
     hoo: string
     x: seq[string]
+    y: seq[int]
     i: int
     b: bool
 
@@ -31,7 +32,7 @@ proc skipHook(v: Boo, key: string): bool =
 proc skipHook(v: string, key: string): bool =
   result = v.len == 0
 
-proc skipHook(v: seq[string], key: string): bool =
+proc skipHook[T](v: seq[T], key: string): bool =
   result = v.len == 0
 
 let w = Woo(boo: Boo())
