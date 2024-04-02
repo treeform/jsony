@@ -26,7 +26,10 @@ type
   Woo = object
     boo: Boo
 
-proc skipHook(v: Boo, key: string): bool =
+  Moo = object
+    boo: Boo
+
+proc skipHook(T: typedesc[Woo], v: Boo, key: string): bool =
   result = v == nil
 
 proc skipHook(v: string, key: string): bool =
@@ -44,3 +47,12 @@ doAssert w2.toJson() ==
 let b = Boo()
 doAssert b.toJson() == 
   """{"i":0,"b":false}"""
+
+block:
+  let m = Moo() # not covered by `skipHook`
+  doAssert m.toJson() ==
+    """{"boo":null}"""
+block:
+  let m = Moo(boo: Boo(hoo: "just moo"))
+  doAssert m.toJson() ==
+    """{"boo":{"hoo":"just moo","i":0,"b":false}}"""
