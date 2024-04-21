@@ -18,6 +18,7 @@ type
 proc parseHook*[T](s: string, i: var int, v: var seq[T])
 proc parseHook*[T: enum](s: string, i: var int, v: var T)
 proc parseHook*[T: object|ref object](s: string, i: var int, v: var T)
+proc parseHook*[T](s: string, i: var int, v: var Option[T])
 proc parseHook*[K: string | enum, V](s: string, i: var int, v: var SomeTable[K, V])
 proc parseHook*[T](s: string, i: var int, v: var (SomeSet[T]|set[T]))
 proc parseHook*[T: tuple](s: string, i: var int, v: var T)
