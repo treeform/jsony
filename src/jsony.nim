@@ -757,6 +757,8 @@ proc dumpHook*(s: var string, v: string) =
 
   s.add '"'
 
+proc toJson*[T](v: T): string
+
 template dumpKey(s: var string, v: string) =
   const v2 = v.toJson() & ":"
   s.add v2
