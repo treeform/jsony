@@ -8,6 +8,15 @@ block:
   doAssert v.color == ""
 
 block:
+  type Frog = object
+    legs: int = 4
+
+  var s = "{}"
+  var f = s.fromJson(Frog)
+  # Make sure the default value is deserialized correctly.
+  doAssert f.legs == 4
+
+block:
   type Foo2 = ref object
     field: string
     a: string

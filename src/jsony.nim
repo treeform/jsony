@@ -599,6 +599,7 @@ proc fromJson*[T](s: string, x: typedesc[T]): T =
   ## * Missing json fields keep their default values.
   ## * `proc newHook(foo: var ...)` Can be used to populate default values.
   var i = 0
+  result = default(T)
   s.parseHook(i, result)
   eatSpace(s, i)
   if i != s.len:
