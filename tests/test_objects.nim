@@ -7,6 +7,16 @@ block:
   var v = s.fromJson(Entry1)
   doAssert v.color == ""
 
+when NimMajor >= 2: # Default field values are only supported in Nim 2.0+
+  block:
+    type Frog = object
+      legs: int = 4
+
+    var s = "{}"
+    var f = s.fromJson(Frog)
+    # Make sure the default value is deserialized correctly.
+    doAssert f.legs == 4
+
 block:
   type Foo2 = ref object
     field: string
