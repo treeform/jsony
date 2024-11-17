@@ -46,6 +46,6 @@ nim	parseHook	jsony.html#parseHook,string,int,RawJson	proc parseHook(s: string; 
 nim	dumpHook	jsony.html#dumpHook,string,RawJson	proc dumpHook(s: var string; v: RawJson)		910
 nim	toJson	jsony.html#toJson,T	proc toJson[T](v: T): string		913
 nim	toStaticJson	jsony.html#toStaticJson.t,untyped	template toStaticJson(v: untyped): static[string]		916
-nimgrp	fromjson	jsony.html#fromJson-procs-all	proc		596
 nimgrp	dumphook	jsony.html#dumpHook-procs-all	proc		616
 nimgrp	parsehook	jsony.html#parseHook-procs-all	proc		18
+nimgrp	fromjson	jsony.html#fromJson-procs-all	proc		596
