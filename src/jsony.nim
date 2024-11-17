@@ -2,6 +2,7 @@ import jsony/objvar, std/json, std/options, std/parseutils, std/sets,
     std/strutils, std/tables, std/typetraits, std/unicode
 
 type JsonError* = object of ValueError
+  offset*: int
 
 const
   whiteSpace = {' ', '\n', '\t', '\r'}
@@ -29,7 +30,9 @@ proc parseHook*[T: distinct](s: string, i: var int, v: var T)
 
 template error(msg: string, i: int) =
   ## Shortcut to raise an exception.
-  raise newException(JsonError, msg & " At offset: " & $i)
+  var e = newException(JsonError, msg)
+  e.offset = i
+  raise e
 
 template eatSpace*(s: string, i: var int) =
   ## Will consume whitespace.
