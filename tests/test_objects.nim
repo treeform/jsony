@@ -284,7 +284,6 @@ block:
 
 # test https://forum.nim-lang.org/t/7619
 
-import jsony
 type
   FooBar = object
     `Foo Bar`: string
@@ -295,4 +294,6 @@ proc renameHook*(v: var FooBar, fieldName: var string) =
   if fieldName == "Foo Bar":
     fieldName = "FooBar"
 
-echo jsonString.fromJson(FooBar)
+let jsonObj = jsonString.fromJson(FooBar)
+doAssert jsonObj.`Foo Bar` == "Hello World"
+doAssert jsonObj.FooBar == "Hello World"

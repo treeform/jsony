@@ -38,5 +38,5 @@ var
     something: nil
   )
 
-echo foo1.toJson()
-echo foo2.toJson()
+doAssert foo1.toJson() == """{"id":"123","something":{"count":1}}"""
+doAssert foo2.toJson() == """{"id":"456","something":null}"""

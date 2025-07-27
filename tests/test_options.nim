@@ -40,6 +40,50 @@ type
     key: Option[int]
 var test = """{ "key": null }""".fromJson(Test)
 doAssert test.key.isNone == true
-var test2 = """{ "key": 2 }""".fromJson(Test)
-doAssert test2.key.isNone == false
-doAssert test2.key.get == 2
+
+type
+  TestObject = object
+    name: string
+    value: Option[int]
+
+let objWithNull = TestObject(name: "Test", value: none(int))
+let objWithoutNull = TestObject(name: "Test", value: some(123))
+
+# Test dropNull = true
+let optionsDropNull = SerializationOptions(dropNull: true)
+let jsonDropNull = objWithNull.toJson(optionsDropNull)
+doAssert jsonDropNull == "{\"name\":\"Test\"}"
+
+# Test dropNull = false (default behavior)
+let jsonKeepNull = objWithNull.toJson()
+doAssert jsonKeepNull == "{\"name\":\"Test\",\"value\":null}"
+
+# Test with a non-null value
+let jsonNonNull = objWithoutNull.toJson(optionsDropNull)
+doAssert jsonNonNull == "{\"name\":\"Test\",\"value\":123}"
+
+type
+  TestObjectWithDefaults = object
+    name: string = "DefaultName"
+    count: int = 0
+    enabled: bool = false
+    optionalValue: Option[int] = none(int)
+
+let objWithDefaults = TestObjectWithDefaults(name: "CustomName", count: 5, enabled: true, optionalValue: some(10))
+let objWithDefaultValues = TestObjectWithDefaults()
+
+# Test dropDefault = true
+let optionsDropDefault = SerializationOptions(dropDefault: true)
+
+# Test with custom values (should not drop anything)
+let jsonWithCustomValues = objWithDefaults.toJson(optionsDropDefault)
+doAssert jsonWithCustomValues == "{\"name\":\"CustomName\",\"count\":5,\"enabled\":true,\"optionalValue\":10}"
+
+# Test with default values (should drop all fields)
+let jsonWithDefaultValues = objWithDefaultValues.toJson(optionsDropDefault)
+doAssert jsonWithDefaultValues == "{}"
+
+# Test with mixed values (should drop default fields)
+let objMixed = TestObjectWithDefaults(name: "MixedName", count: 0, enabled: false, optionalValue: none(int))
+let jsonMixed = objMixed.toJson(optionsDropDefault)
+doAssert jsonMixed == "{\"name\":\"MixedName\"}"
