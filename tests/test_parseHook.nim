@@ -1,4 +1,6 @@
-import json, jsony, strutils, tables, times
+import algorithm, json, sequtils, strutils, tables, times
+
+import jsony
 
 type Fraction = object
   numerator: int
@@ -37,7 +39,7 @@ let data = """{
 }"""
 
 proc parseHook(s: string, i: var int, v: var seq[Entry]) =
-  var table: Table[string, Entry]
+  var table: OrderedTable[string, Entry]
   parseHook(s, i, table)
   for k, entry in table.mpairs:
     entry.id = k

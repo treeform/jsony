@@ -61,4 +61,4 @@ var foo = Foo(
   bar1Object: some(Bar(nameOfThing: "Bar", arr: @[1, 2, 3]))
 )
 
-echo foo.toJson()
+doAssert foo.toJson() == """{"idRef":"0000-1234","bar1Object":{"nameOfThing":"Bar","arr":[1,2,3]},"bar2Object":null}"""

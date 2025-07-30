@@ -10,10 +10,25 @@ const
 when defined(release):
   {.push checks: off, inline.}
 
+proc hasAnyExplicitDefault[T](t: typedesc[T]): bool =
+  for name, value in T.default.fieldPairs:
+    when default(typeof(value)) != value:
+      return true
+  return false
+
 type
-  SomeTable*[K, V] = Table[K, V] | OrderedTable[K, V] |
-    TableRef[K, V] | OrderedTableRef[K, V]
+  SomeTable*[K, V] = Table[K, V] | OrderedTable[K, V] | TableRef[K, V] | OrderedTableRef[K, V]
+
   RawJson* = distinct string
+
+  SerializationOptions* = object
+    dropNull*: bool = false
+    dropDefault*: bool = false
+
+  ComplexType = set | seq | array | tuple | object
+
+  ObjectWithDefaults* = concept x
+    hasAnyExplicitDefault(typeof(x)) == true
 
 proc parseHook*[T](s: string, i: var int, v: var seq[T])
 proc parseHook*[T: enum](s: string, i: var int, v: var T)
@@ -26,6 +41,10 @@ proc parseHook*[T: not object](s: string, i: var int, v: var ref T)
 proc parseHook*(s: string, i: var int, v: var JsonNode)
 proc parseHook*(s: string, i: var int, v: var char)
 proc parseHook*[T: distinct](s: string, i: var int, v: var T)
+
+proc `==`*(a, b: RawJson): bool =
+  ## Compare RawJson values; used by dropDefault.
+  string(a) == string(b)
 
 template error(msg: string, i: int) =
   ## Shortcut to raise an exception.
@@ -205,6 +224,7 @@ proc parseUnicodeEscape(s: string, i: var int): int =
       result = 0x10000 + (((result - 0xd800) shl 10) or (nextRune - 0xdc00))
 
 proc parseHook*(s: string, i: var int, v: var string) =
+  
   ## Parse string.
   eatSpace(s, i)
   if i + 3 < s.len and
@@ -275,6 +295,7 @@ proc parseHook*(s: string, i: var int, v: var string) =
   eatChar(s, i, '"')
 
 proc parseHook*(s: string, i: var int, v: var char) =
+  
   var str: string
   s.parseHook(i, str)
   if str.len != 1:
@@ -282,6 +303,7 @@ proc parseHook*(s: string, i: var int, v: var char) =
   v = str[0]
 
 proc parseHook*[T](s: string, i: var int, v: var seq[T]) =
+  
   ## Parse seq.
   eatChar(s, i, '[')
   while i < s.len:
@@ -299,6 +321,8 @@ proc parseHook*[T](s: string, i: var int, v: var seq[T]) =
   eatChar(s, i, ']')
 
 proc parseHook*[T: array](s: string, i: var int, v: var T) =
+  
+
   eatSpace(s, i)
   eatChar(s, i, '[')
   for value in v.mitems:
@@ -310,6 +334,8 @@ proc parseHook*[T: array](s: string, i: var int, v: var T) =
   eatChar(s, i, ']')
 
 proc parseHook*[T: not object](s: string, i: var int, v: var ref T) =
+  
+
   eatSpace(s, i)
   if i + 3 < s.len and
       s[i+0] == 'n' and
@@ -399,6 +425,7 @@ proc parseObjectInner[T](s: string, i: var int, v: var T) =
     postHook(v)
 
 proc parseHook*[T: tuple](s: string, i: var int, v: var T) =
+  
   eatSpace(s, i)
   when T.isNamedTuple():
     if i < s.len and s[i] == '{':
@@ -416,6 +443,7 @@ proc parseHook*[T: tuple](s: string, i: var int, v: var T) =
   eatChar(s, i, ']')
 
 proc parseHook*[T: enum](s: string, i: var int, v: var T) =
+  
   eatSpace(s, i)
   var strV: string
   if i < s.len and s[i] == '"':
@@ -435,6 +463,7 @@ proc parseHook*[T: enum](s: string, i: var int, v: var T) =
       error("Can't parse enum.", i)
 
 proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
+  
   ## Parse an object or ref object.
   eatSpace(s, i)
   if i + 3 < s.len and
@@ -481,6 +510,7 @@ proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
   eatChar(s, i, '}')
 
 proc parseHook*[T](s: string, i: var int, v: var Option[T]) =
+  
   ## Parse an Option.
   eatSpace(s, i)
   if i + 3 < s.len and
@@ -495,6 +525,7 @@ proc parseHook*[T](s: string, i: var int, v: var Option[T]) =
   v = some(e)
 
 proc parseHook*[K: string | enum, V](s: string, i: var int, v: var SomeTable[K, V]) =
+  
   ## Parse an object.
   when compiles(new(v)):
     new(v)
@@ -577,7 +608,7 @@ proc parseHook*(s: string, i: var int, v: var JsonNode) =
       v = newJBool(true)
     elif data == "false":
       v = newJBool(false)
-    elif data.len > 0 and data[0] in {'0'..'9', '-', '+'}:
+    elif data.len > 0 and data[0] in {'0'..'9', '-' , '+'}:
       try:
         v = newJInt(parseInt(data))
       except ValueError:
@@ -593,7 +624,7 @@ proc parseHook*[T: distinct](s: string, i: var int, v: var T) =
   parseHook(s, i, x)
   v = cast[T](x)
 
-proc fromJson*[T](s: string, x: typedesc[T]): T =
+proc fromJson*[T](s: string, x: typedesc[T], options: SerializationOptions = SerializationOptions()): T =
   ## Takes json and outputs the object it represents.
   ## * Extra json fields are ignored.
   ## * Missing json fields keep their default values.
@@ -605,7 +636,7 @@ proc fromJson*[T](s: string, x: typedesc[T]): T =
   if i != s.len:
     error("Found non-whitespace character after JSON data.", i)
 
-proc fromJson*(s: string): JsonNode =
+proc fromJson*(s: string, options: SerializationOptions = SerializationOptions()): JsonNode =
   ## Takes json parses it into `JsonNode`s.
   var i = 0
   s.parseHook(i, result)
@@ -614,30 +645,38 @@ proc fromJson*(s: string): JsonNode =
     error("Found non-whitespace character after JSON data.", i)
 
 proc dumpHook*(s: var string, v: bool)
-proc dumpHook*(s: var string, v: uint|uint8|uint16|uint32|uint64)
-proc dumpHook*(s: var string, v: int|int8|int16|int32|int64)
+proc dumpHook*(s: var string, v: SomeUnsignedInt)
+proc dumpHook*(s: var string, v: SomeSignedInt)
 proc dumpHook*(s: var string, v: SomeFloat)
 proc dumpHook*(s: var string, v: string)
 proc dumpHook*(s: var string, v: char)
-proc dumpHook*(s: var string, v: tuple)
+proc dumpHook*(s: var string, v: tuple, options: SerializationOptions = SerializationOptions())
 proc dumpHook*(s: var string, v: enum)
 type t[T] = tuple[a: string, b: T]
-proc dumpHook*[N, T](s: var string, v: array[N, t[T]])
-proc dumpHook*[N, T](s: var string, v: array[N, T])
-proc dumpHook*[T](s: var string, v: seq[T])
-proc dumpHook*(s: var string, v: object)
-proc dumpHook*(s: var string, v: ref)
-proc dumpHook*[T: distinct](s: var string, v: T)
+proc dumpHook*[N, T](s: var string, v: array[N, t[T]], options: SerializationOptions = SerializationOptions())
+proc dumpHook*[N, T](s: var string, v: array[N, T], options: SerializationOptions = SerializationOptions())
+proc dumpHook*[T](s: var string, v: seq[T], options: SerializationOptions = SerializationOptions())
+proc dumpHook*[T: object and not (set | SomeSet | Option)](s: var string, v: T, options: SerializationOptions = SerializationOptions())
+proc dumpHook*[T](s: var string, v: ref T, options: SerializationOptions = SerializationOptions())
+proc dumpHook*[T: distinct](s: var string, v: T, options: SerializationOptions = SerializationOptions())
 
-proc dumpHook*[T: distinct](s: var string, v: T) =
+proc shouldDropNull[T](v: T): bool =
+  when v is Option:
+    result = v.isNone
+  elif v is ref:
+    result = v == nil
+  else:
+    result = false
+
+proc dumpHook*[T: distinct](s: var string, v: T, options: SerializationOptions) =
   var x = cast[T.distinctBase](v)
-  s.dumpHook(x)
+  when x is object or x is ref object:
+    s.dumpHook(x, options)
+  else:
+    s.dumpHook(x)
 
 proc dumpHook*(s: var string, v: bool) =
-  if v:
-    s.add "true"
-  else:
-    s.add "false"
+  s.add $v  # nim uses lower case; "true" or "false"
 
 const lookup = block:
   ## Generate 00, 01, 02 ... 99 pairs.
@@ -648,10 +687,10 @@ const lookup = block:
     s.add($i)
   s
 
-proc dumpNumberSlow(s: var string, v: uint|uint8|uint16|uint32|uint64) =
+proc dumpNumberSlow(s: var string, v: SomeUnsignedInt) =
   s.add $v.uint64
 
-proc dumpNumberFast(s: var string, v: uint|uint8|uint16|uint32|uint64) =
+proc dumpNumberFast(s: var string, v: SomeUnsignedInt) =
   # Its faster to not allocate a string for a number,
   # but to write it out the digits directly.
   if v == 0:
@@ -679,7 +718,7 @@ proc dumpNumberFast(s: var string, v: uint|uint8|uint16|uint32|uint64) =
     dec p
     inc at
 
-proc dumpHook*(s: var string, v: uint|uint8|uint16|uint32|uint64) =
+proc dumpHook*(s: var string, v: SomeUnsignedInt) =
   when nimvm:
     s.dumpNumberSlow(v)
   else:
@@ -688,7 +727,7 @@ proc dumpHook*(s: var string, v: uint|uint8|uint16|uint32|uint64) =
     else:
       s.dumpNumberFast(v)
 
-proc dumpHook*(s: var string, v: int|int8|int16|int32|int64) =
+proc dumpHook*(s: var string, v: SomeSignedInt) =
   if v < 0:
     s.add '-'
     dumpHook(s, 0.uint64 - v.uint64)
@@ -767,48 +806,71 @@ proc dumpHook*(s: var string, v: char) =
   s.add v
   s.add '"'
 
-proc dumpHook*(s: var string, v: tuple) =
+proc dumpHook*(s: var string, v: tuple, options: SerializationOptions) =
   s.add '['
   var i = 0
   for _, e in v.fieldPairs:
-    if i > 0:
-      s.add ','
-    s.dumpHook(e)
-    inc i
+    if not (options.dropNull and shouldDropNull(e)):
+      if i > 0:
+        s.add ','
+      s.dumpHook(e)
+      inc i
   s.add ']'
 
 proc dumpHook*(s: var string, v: enum) =
   s.dumpHook($v)
 
-proc dumpHook*[N, T](s: var string, v: array[N, T]) =
+proc dumpHook*[N, T](s: var string, v: array[N, T], options: SerializationOptions) =
   s.add '['
-  var i = 0
-  for e in v:
+  for i, e in v.pairs:
+    if options.dropNull and shouldDropNull(e):
+      continue
     if i != 0:
       s.add ','
     s.dumpHook(e)
-    inc i
   s.add ']'
 
-proc dumpHook*[T](s: var string, v: seq[T]) =
+proc dumpHook*[T](s: var string, v: seq[T], options: SerializationOptions) =
   s.add '['
   for i, e in v:
+    if options.dropNull and shouldDropNull(e):
+      continue
     if i != 0:
       s.add ','
     s.dumpHook(e)
   s.add ']'
 
-proc dumpHook*[T](s: var string, v: Option[T]) =
-  if v.isNone:
+proc dumpHook*[T](s: var string, v: Option[T], options: SerializationOptions = SerializationOptions()) =
+  if options.dropNull and shouldDropNull(v):
+    return
+  elif v.isNone:
     s.add "null"
   else:
     s.dumpHook(v.get())
 
-proc dumpHook*(s: var string, v: object) =
+proc shouldDumpField[T](fieldName: static string, objType: typedesc, fieldVal: T, defVal: T, dropNull: bool, dropDefault: bool): bool =
+  ## Determines if a field should be dumped based on options and field value
+  result = true
+
+  when compiles(skipHook(objType, fieldName)):
+    when skipHook(objType, fieldName):
+      return false
+
+  if dropNull:
+    when fieldVal is Option:
+      if fieldVal.isNone:
+        return false
+    elif fieldVal is ref:
+      if fieldVal == nil:
+        return false
+
+  if dropDefault and fieldVal == defVal:
+      return false
+
+proc dumpHook*[T: object and not (set | SomeSet | Option)](s: var string, v: T, options: SerializationOptions) =
   s.add '{'
   var i = 0
-  when compiles(for k, e in v.pairs: discard):
-    # Tables and table like objects.
+  when T is SomeTable:
     for k, e in v.pairs:
       if i > 0:
         s.add ','
@@ -816,31 +878,36 @@ proc dumpHook*(s: var string, v: object) =
       s.add ':'
       s.dumpHook(e)
       inc i
-  else:
-    # Normal objects.
+  elif T is ObjectWithDefaults:
+    for name, fieldVal, defVal in fieldPairs(v, default(typeof(v))):
+      if shouldDumpField(name, T, fieldVal, defVal, options.dropNull, options.dropDefault):
+        # s.dumpField(i, name, objVal)
+        if i > 0:
+          s.add ','
+        s.dumpKey(name)
+        s.dumpHook(fieldVal)
+        inc i
+  elif T is tuple | object:
     for k, e in v.fieldPairs:
-      when compiles(skipHook(type(v), k)):
-        when skipHook(type(v), k):
-          discard
-        else:
-          if i > 0:
-            s.add ','
-          s.dumpKey(k)
-          s.dumpHook(e)
-          inc i
-      else:
+      if shouldDumpField(k, T, e, e, options.dropNull, false):  # not using default value here
+        # s.dumpField(i, k, e)
         if i > 0:
           s.add ','
         s.dumpKey(k)
         s.dumpHook(e)
         inc i
+  else:
+    error "Type does not support dumping: " & T.name
   s.add '}'
 
-proc dumpHook*[N, T](s: var string, v: array[N, t[T]]) =
+# This is a special case for arrays of tuples, where we want to create a JSON object (dictionary)
+proc dumpHook*[N, T](s: var string, v: array[N, t[T]], options: SerializationOptions) =
   s.add '{'
   var i = 0
   # Normal objects.
   for (k, e) in v:
+    if options.dropNull and shouldDropNull(e):
+      continue
     if i > 0:
       s.add ','
     s.dumpHook(k)
@@ -849,16 +916,22 @@ proc dumpHook*[N, T](s: var string, v: array[N, t[T]]) =
     inc i
   s.add '}'
 
-proc dumpHook*(s: var string, v: ref) =
+proc dumpHook*[T](s: var string, v: ref T, options: SerializationOptions) =
   if v == nil:
     s.add "null"
   else:
-    s.dumpHook(v[])
+    when T is ComplexType:
+      s.dumpHook(v[], options)
+    else:
+      s.dumpHook(v[])
 
-proc dumpHook*[T](s: var string, v: SomeSet[T]|set[T]) =
+proc dumpHook*[T](s: var string, v: SomeSet[T]|set[T], options: SerializationOptions) =
   s.add '['
   var i = 0
   for e in v:
+    if options.dropNull and shouldDropNull(e):
+      inc i
+      continue
     if i != 0:
       s.add ','
     s.dumpHook(e)
@@ -910,8 +983,11 @@ proc parseHook*(s: string, i: var int, v: var RawJson) =
 proc dumpHook*(s: var string, v: RawJson) =
   s.add v.string
 
-proc toJson*[T](v: T): string =
-  dumpHook(result, v)
+proc toJson*[T](v: T, options: SerializationOptions = SerializationOptions()): string =
+  when v is ComplexType:
+    dumpHook(result, v, options)
+  else:
+    dumpHook(result, v)
 
 template toStaticJson*(v: untyped): static[string] =
   ## This will turn v into json at compile time and return the json string.

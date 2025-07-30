@@ -1,6 +1,6 @@
 version     = "1.1.5"
 author      = "Andre von Houck"
-description = "A loose direct to object json parser with hooks."
+description = "A loose, direct-to-object JSON parser with hooks."
 license     = "MIT"
 
 srcDir = "src"
