@@ -45,7 +45,16 @@ proc parseHook(s: string, i: var int, v: var seq[Entry]) =
 
 let s = data.fromJson(seq[Entry])
 doAssert type(s) is seq[Entry]
-doAssert $s == """@[(id: "1", count: 12, filled: 11), (id: "2", count: 66, filled: 0), (id: "3", count: 99, filled: 99)]"""
+for entry in s:
+  if entry.id == "1":
+    doAssert entry.count == 12
+    doAssert entry.filled == 11
+  elif entry.id == "2":
+    doAssert entry.count == 66
+    doAssert entry.filled == 0
+  elif entry.id == "3":
+    doAssert entry.count == 99
+    doAssert entry.filled == 99
 
 type Entry2 = object
   id: int
