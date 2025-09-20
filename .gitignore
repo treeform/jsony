@@ -10,5 +10,3 @@ nimcache
 *.pdb
 *.ilk
 .*
-
-!.github/
