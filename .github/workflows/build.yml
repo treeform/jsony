@@ -11,7 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v5
     - uses: jiro4989/setup-nim-action@v2
       with:
         nim-version: ${{ matrix.nim-version }}
