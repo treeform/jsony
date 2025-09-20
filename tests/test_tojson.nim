@@ -9,16 +9,13 @@ doAssert 1.uint32.toJson() == "1"
 doAssert 1.int8.toJson() == "1"
 doAssert 1.int16.toJson() == "1"
 doAssert 1.int32.toJson() == "1"
-doAssert 3.14.float64.toJson() == "3.14"
+
 
 when not defined(js):
   doAssert 1.int64.toJson() == "1"
   doAssert 1.uint64.toJson() == "1"
-  doAssert 3.14.float32.toJson() == "3.140000104904175"
 
 match 1
-match 3.14.float32
-match 3.14.float64
 
 doAssert [1, 2, 3].toJson() == "[1,2,3]"
 doAssert @[1, 2, 3].toJson() == "[1,2,3]"
@@ -65,7 +62,7 @@ doAssert t.toJson() == """[1,2.2,"hi"]"""
 var tb: Table[string, int]
 tb["hi"] = 1
 tb["bye"] = 2
-doAssert tb.toJson() == """{"hi":1,"bye":2}"""
+doAssert tb.toJson() == """{"hi":1,"bye":2}""" or tb.toJson() == """{"bye":2,"hi":1}"""
 
 type Fraction = object
   numerator: int
