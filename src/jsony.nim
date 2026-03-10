@@ -484,12 +484,12 @@ proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
       let discBefore = v.discriminatorField
       parseObjectInner(s, i, v)
       if v.discriminatorField != discBefore:
-        error("Duplicate discriminator field with conflicting value.", i)
+        error("Duplicate discriminator field.", i)
     else:
       try:
         parseObjectInner(s, i, v)
       except FieldDefect:
-        error("Duplicate discriminator field with conflicting value.", i)
+        error("Duplicate discriminator field.", i)
   else:
     parseObjectInner(s, i, v)
   eatChar(s, i, '}')
