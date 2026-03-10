@@ -477,7 +477,18 @@ proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
           new(v)
         break
     i = saveI
-  parseObjectInner(s, i, v)
+  when v.isObjectVariant:
+    # Object variant, check for duplicate discriminator field.
+    # -d:release has different behavior.
+    let discBefore = v.discriminatorField
+    try:
+      parseObjectInner(s, i, v)
+    except FieldDefect:
+      error("Duplicate discriminator field.", i)
+    if v.discriminatorField != discBefore:
+      error("Duplicate discriminator field.", i)
+  else:
+    parseObjectInner(s, i, v)
   eatChar(s, i, '}')
 
 proc parseHook*[T](s: string, i: var int, v: var Option[T]) =

@@ -282,6 +282,29 @@ block:
   doAssert c.kind == nkFloat
   doAssert d.kind == nkInt
 
+
+block:
+  # Duplicate discriminator with a conflicting value raises JsonError.
+  var raised = false
+  try:
+    discard """{"kind":"nkFloat","floatVal":3.14,"kind":"nkInt"}""".fromJson(
+      ValueNode)
+  except JsonError:
+    raised = true
+  doAssert raised,
+    "expected JsonError for conflicting duplicate discriminator"
+
+block:
+  # Same test for ref object variant.
+  var raised = false
+  try:
+    discard """{"kind":"nkFloat","floatVal":3.14,"kind":"nkInt"}""".fromJson(
+      RefNode)
+  except JsonError:
+    raised = true
+  doAssert raised,
+    "expected JsonError for conflicting duplicate discriminator"
+
 # test https://forum.nim-lang.org/t/7619
 
 import jsony
