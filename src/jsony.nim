@@ -480,16 +480,13 @@ proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
   when v.isObjectVariant:
     # Object variant, check for duplicate discriminator field.
     # -d:release has different behavior.
-    when defined(release):
-      let discBefore = v.discriminatorField
+    let discBefore = v.discriminatorField
+    try:
       parseObjectInner(s, i, v)
-      if v.discriminatorField != discBefore:
-        error("Duplicate discriminator field.", i)
-    else:
-      try:
-        parseObjectInner(s, i, v)
-      except FieldDefect:
-        error("Duplicate discriminator field.", i)
+    except FieldDefect:
+      error("Duplicate discriminator field.", i)
+    if v.discriminatorField != discBefore:
+      error("Duplicate discriminator field.", i)
   else:
     parseObjectInner(s, i, v)
   eatChar(s, i, '}')
