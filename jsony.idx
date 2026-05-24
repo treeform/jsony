@@ -1,4 +1,4 @@
-nimTitle	jsony	jsony.html	module src/jsony		0
+nimTitle	jsony	jsony.html	module jsony		0
 nim	JsonError	jsony.html#JsonError	object JsonError		4
 nim	SomeTable	jsony.html#SomeTable	type SomeTable		14
 nim	RawJson	jsony.html#RawJson	type RawJson		16

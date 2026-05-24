@@ -1,4 +1,4 @@
-nimTitle	objvar	jsony/objvar.html	module src/jsony/objvar		0
+nimTitle	objvar	jsony/objvar.html	module jsony/objvar		0
 nim	fieldPairs	jsony/objvar.html#fieldPairs.t,T	template fieldPairs[T: ref object](x: T): untyped		15
 nim	isObjectVariant	jsony/objvar.html#isObjectVariant.m,typed	macro isObjectVariant(v: typed): bool		18
 nim	discriminator	jsony/objvar.html#discriminator,NimNode	proc discriminator(v: NimNode): NimNode		30

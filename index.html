@@ -5,7 +5,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>src/jsony</title>
+<title>jsony</title>
 
 <!-- Google fonts -->
 <link href='https://fonts.googleapis.com/css?family=Lato:400,600,900' rel='stylesheet' type='text/css'/>
@@ -16,15 +16,18 @@
 <link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAA3XAAAN1wFCKJt4AAAAB3RJTUUH4QQQEwksSS9ZWwAAAk1JREFUWMPtll2ITVEUx39nn/O7Y5qR8f05wtCUUr6ZIS++8pEnkZInPImneaCQ5METNdOkeFBKUhMPRIkHKfEuUZSUlGlKPN2TrgfncpvmnntnmlEyq1Z7t89/rf9a6+y99oZxGZf/XeIq61EdtgKXgdXA0xrYAvBjOIF1AI9zvjcC74BSpndrJPkBWDScTF8Aa4E3wDlgHbASaANmVqlcCnwHvgDvgVfAJ+AikAAvgfVZwLnSVZHZaOuKoQi3ZOMi4NkYkpe1p4J7A8BpYAD49hfIy/oqG0+hLomiKP2L5L+1ubn5115S+3OAn4EnwBlgMzCjyt6ZAnQCJ4A7wOs88iRJHvw50HoujuPBoCKwHWiosy8MdfZnAdcHk8dxXFJ3VQbQlCTJvRBCGdRbD4M6uc5glpY3eAihpN5S5w12diSEcCCEcKUO4ljdr15T76ur1FDDLIQQ3qv71EdDOe3Kxj3leRXyk+pxdWnFWod6Wt2bY3de3aSuUHcPBVimHs7mK9WrmeOF6lR1o9qnzskh2ar2qm1qizpfXaPeVGdlmGN5pb09qMxz1Xb1kLqgzn1RyH7JUXW52lr5e/Kqi9qpto7V1atuUzfnARrV7jEib1T76gG2qxdGmXyiekkt1GswPTtek0aBfJp6YySGBfWg2tPQ0FAYgf1stUfdmdcjarbYJEniKIq6gY/Aw+zWHAC+p2labGpqiorFYgGYCEzN7oQdQClN07O1/EfDyGgC0ALMBdYAi4FyK+4H3gLPsxfR1zRNi+NP7nH5J+QntnXe5B5mpfQAAAAASUVORK5CYII=">
 
 <!-- CSS -->
-<link rel="stylesheet" type="text/css" href="nimdoc.out.css?v=2.2.8">
+<link rel="stylesheet" type="text/css" href="nimdoc.out.css?v=2.2.10">
 
 <!-- JS -->
-<script type="text/javascript" src="dochack.js?v=2.2.8"></script>
+<script type="text/javascript" src="dochack.js?v=2.2.10"></script>
 </head>
 <body>
   <div class="document" id="documentId">
+    <input type="checkbox" id="nav-toggle" hidden>
+    <label for="nav-toggle" id="nav-burger">&#9776;</label>
+    <label for="nav-toggle" id="nav-overlay"></label>
     <div class="container">
-      <h1 class="title">src/jsony</h1>
+      <h1 class="title">jsony</h1>
       <div class="row">
   <div class="three columns">
     <div class="theme-select-wrapper">
@@ -174,7 +177,7 @@
   <h1><a class="toc-backref" href="#7">Types</a></h1>
   <dl class="item">
     <div id="JsonError">
-  <dt><pre><a href="jsony.html#JsonError"><span class="Identifier">JsonError</span></a> <span class="Other">=</span> <span class="Keyword">object</span> <span class="Keyword">of</span> <span class="Identifier">ValueError</span></pre></dt>
+  <dt><pre><a href="#JsonError"><span class="Identifier">JsonError</span></a> <span class="Other">=</span> <span class="Keyword">object</span> <span class="Keyword">of</span> <span class="Identifier">ValueError</span></pre></dt>
   <dd>
     
     
@@ -184,7 +187,7 @@
   </dd>
 </div>
 <div id="RawJson">
-  <dt><pre><a href="jsony.html#RawJson"><span class="Identifier">RawJson</span></a> <span class="Other">=</span> <span class="Keyword">distinct</span> <span class="Identifier">string</span></pre></dt>
+  <dt><pre><a href="#RawJson"><span class="Identifier">RawJson</span></a> <span class="Other">=</span> <span class="Keyword">distinct</span> <span class="Identifier">string</span></pre></dt>
   <dd>
     
     
@@ -194,7 +197,7 @@
   </dd>
 </div>
 <div id="SomeTable">
-  <dt><pre><a href="jsony.html#SomeTable"><span class="Identifier">SomeTable</span></a><span class="Other">[</span><span class="Identifier">K</span><span class="Other">;</span> <span class="Identifier">V</span><span class="Other">]</span> <span class="Other">=</span> <span class="Identifier">Table</span><span class="Other">[</span><span class="Identifier">K</span><span class="Other">,</span> <span class="Identifier">V</span><span class="Other">]</span> <span class="Operator">|</span> <span class="Identifier">OrderedTable</span><span class="Other">[</span><span class="Identifier">K</span><span class="Other">,</span> <span class="Identifier">V</span><span class="Other">]</span> <span class="Operator">|</span> <span class="Identifier">TableRef</span><span class="Other">[</span><span class="Identifier">K</span><span class="Other">,</span> <span class="Identifier">V</span><span class="Other">]</span> <span class="Operator">|</span>
+  <dt><pre><a href="#SomeTable"><span class="Identifier">SomeTable</span></a><span class="Other">[</span><span class="Identifier">K</span><span class="Other">;</span> <span class="Identifier">V</span><span class="Other">]</span> <span class="Other">=</span> <span class="Identifier">Table</span><span class="Other">[</span><span class="Identifier">K</span><span class="Other">,</span> <span class="Identifier">V</span><span class="Other">]</span> <span class="Operator">|</span> <span class="Identifier">OrderedTable</span><span class="Other">[</span><span class="Identifier">K</span><span class="Other">,</span> <span class="Identifier">V</span><span class="Other">]</span> <span class="Operator">|</span> <span class="Identifier">TableRef</span><span class="Other">[</span><span class="Identifier">K</span><span class="Other">,</span> <span class="Identifier">V</span><span class="Other">]</span> <span class="Operator">|</span>
     <span class="Identifier">OrderedTableRef</span><span class="Other">[</span><span class="Identifier">K</span><span class="Other">,</span> <span class="Identifier">V</span><span class="Other">]</span></pre></dt>
   <dd>
     
@@ -273,7 +276,7 @@
   </dd>
 </div>
 <div id="dumpHook,string,RawJson">
-  <dt><pre><span class="Keyword">proc</span> <a href="#dumpHook%2Cstring%2CRawJson"><span class="Identifier">dumpHook</span></a><span class="Other">(</span><span class="Identifier">s</span><span class="Other">:</span> <span class="Keyword">var</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">v</span><span class="Other">:</span> <a href="jsony.html#RawJson"><span class="Identifier">RawJson</span></a><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dt><pre><span class="Keyword">proc</span> <a href="#dumpHook%2Cstring%2CRawJson"><span class="Identifier">dumpHook</span></a><span class="Other">(</span><span class="Identifier">s</span><span class="Other">:</span> <span class="Keyword">var</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">v</span><span class="Other">:</span> <a href="#RawJson"><span class="Identifier">RawJson</span></a><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     
@@ -457,7 +460,7 @@
   </dd>
 </div>
 <div id="parseHook,string,int,RawJson">
-  <dt><pre><span class="Keyword">proc</span> <a href="#parseHook%2Cstring%2Cint%2CRawJson"><span class="Identifier">parseHook</span></a><span class="Other">(</span><span class="Identifier">s</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">i</span><span class="Other">:</span> <span class="Keyword">var</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">v</span><span class="Other">:</span> <span class="Keyword">var</span> <a href="jsony.html#RawJson"><span class="Identifier">RawJson</span></a><span class="Other">)</span> {.
+  <dt><pre><span class="Keyword">proc</span> <a href="#parseHook%2Cstring%2Cint%2CRawJson"><span class="Identifier">parseHook</span></a><span class="Other">(</span><span class="Identifier">s</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">i</span><span class="Other">:</span> <span class="Keyword">var</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">v</span><span class="Other">:</span> <span class="Keyword">var</span> <a href="#RawJson"><span class="Identifier">RawJson</span></a><span class="Other">)</span> {.
     <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">JsonError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
@@ -510,7 +513,7 @@
 </div>
 <div id="parseHook,string,int,SomeTable[K: string or enum,V]">
   <dt><pre><span class="Keyword">proc</span> <a href="#parseHook%2Cstring%2Cint%2CSomeTable%5BK%3A%20string%20or%20enum%2CV%5D"><span class="Identifier">parseHook</span></a><span class="Other">[</span><span class="Identifier">K</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Operator">|</span> <span class="Keyword">enum</span><span class="Other">;</span> <span class="Identifier">V</span><span class="Other">]</span><span class="Other">(</span><span class="Identifier">s</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">i</span><span class="Other">:</span> <span class="Keyword">var</span> <span class="Identifier">int</span><span class="Other">;</span>
-                                    <span class="Identifier">v</span><span class="Other">:</span> <span class="Keyword">var</span> <a href="jsony.html#SomeTable"><span class="Identifier">SomeTable</span></a><span class="Other">[</span><span class="Identifier">K</span><span class="Other">,</span> <span class="Identifier">V</span><span class="Other">]</span><span class="Other">)</span></pre></dt>
+                                    <span class="Identifier">v</span><span class="Other">:</span> <span class="Keyword">var</span> <a href="#SomeTable"><span class="Identifier">SomeTable</span></a><span class="Other">[</span><span class="Identifier">K</span><span class="Other">,</span> <span class="Identifier">V</span><span class="Other">]</span><span class="Other">)</span></pre></dt>
   <dd>
     
     
@@ -707,7 +710,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-03-10 15:24:09 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-05-24 20:41:00 UTC</small>
       </div>
     </div>
   </div>
