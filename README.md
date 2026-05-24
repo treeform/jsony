@@ -277,6 +277,28 @@ Gives us:
 "{"a":1,"b":0.5}"
 ```
 
+### `proc dumpRenameHook*()` Can be used to rename fields when serializing.
+
+If you want to rename some fields when serializing, declare `dumpRenameHook*()`
+
+```nim
+type Node = ref object
+  kind: string
+
+proc dumpRenameHook*(v: typedesc[Node], fieldName: var string) =
+  if fieldName == "kind":
+    fieldName = "type"
+
+var node = Node(kind: "root")
+let s = node.toJson()
+```
+
+Gives us:
+
+```
+{"type":"root"}
+```
+
 ## Static writing with `toStaticJson`.
 
 Sometimes you have some json, and you want to write it in a static way. There is a special function for that:

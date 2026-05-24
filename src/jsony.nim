@@ -769,9 +769,9 @@ proc dumpHook*(s: var string, v: string) =
 
   s.add '"'
 
-template dumpKey(s: var string, v: string) =
-  const v2 = jsony.toJson(v) & ":"
-  s.add v2
+template dumpKey(s: var string, v: var string) =
+  s.add jsony.toJson(v)
+  s.add ":"
 
 proc dumpHook*(s: var string, v: char) =
   s.add '"'
@@ -830,19 +830,24 @@ proc dumpHook*(s: var string, v: object) =
   else:
     # Normal objects.
     for k, e in v.fieldPairs:
+      var key = k
       when compiles(skipHook(type(v), k)):
         when skipHook(type(v), k):
           discard
         else:
+          when compiles(dumpRenameHook(type(v), key)):
+            dumpRenameHook(type(v), key)
           if i > 0:
             s.add ','
-          s.dumpKey(k)
+          s.dumpKey(key)
           s.dumpHook(e)
           inc i
       else:
+        when compiles(dumpRenameHook(type(v), key)):
+          dumpRenameHook(type(v), key)
         if i > 0:
           s.add ','
-        s.dumpKey(k)
+        s.dumpKey(key)
         s.dumpHook(e)
         inc i
   s.add '}'
