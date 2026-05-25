@@ -277,6 +277,42 @@ Gives us:
 "{"a":1,"b":0.5}"
 ```
 
+Also, `skipHook` can be used at runtime to skip fields based on their current value. For example:
+```nim
+type
+  Boo = ref object
+    hoo: string
+    x: seq[string]
+    y: seq[int]
+    i: int
+    b: bool
+
+  Woo = object
+    boo: Boo
+
+proc skipHook(v: Boo, key: string): bool =
+  ## Skip `nil` fields
+  result = v == nil
+
+proc skipHook(v: string, key: string): bool =
+  ## skip all fields that contains empty strings
+  result = v.len == 0
+
+proc skipHook[T](v: seq[T], key: string): bool =
+  # skip all fields that contains empty sequences
+  result = v.len == 0
+
+let w = Woo(boo: Boo())
+assert w.toJson() == """{"boo":{"i":0,"b":false}}"""
+
+let w2 = Woo()
+assert w2.toJson() == "{}"
+
+let b = Boo()
+assert b.toJson() == 
+  """{"i":0,"b":false}"""
+```
+
 ## Static writing with `toStaticJson`.
 
 Sometimes you have some json, and you want to write it in a static way. There is a special function for that:
