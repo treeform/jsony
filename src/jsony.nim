@@ -105,7 +105,12 @@ proc parseHook*(s: string, i: var int, v: var SomeUnsignedInt) =
       v2: uint64 = 0
       startI = i
     while i < s.len and s[i] in {'0'..'9'}:
-      v2 = v2 * 10 + (s[i].ord - '0'.ord).uint64
+      let digit = (s[i].ord - '0'.ord).uint64
+      # Reject numbers that do not fit the target type instead of silently
+      # wrapping modulo (unsigned conversions are unchecked). See issue #109.
+      if v2 > (uint64(high(type(v))) - digit) div 10:
+        error("Number type to small to contain the number.", i)
+      v2 = v2 * 10 + digit
       inc i
     if startI == i:
       error("Number expected.", i)
@@ -123,14 +128,20 @@ proc parseHook*(s: string, i: var int, v: var SomeSignedInt) =
       var v2: uint64
       inc i
       parseHook(s, i, v2)
-      v = -type(v)(v2)
+      # The negative range extends one past high(T) (e.g. int8 reaches -128).
+      # Range-check explicitly; release builds do not raise. See issue #109.
+      if v2 > uint64(high(type(v))) + 1:
+        error("Number type to small to contain the number.", i)
+      elif v2 == uint64(high(type(v))) + 1:
+        v = low(type(v))
+      else:
+        v = -type(v)(v2)
     else:
       var v2: uint64
       parseHook(s, i, v2)
-      try:
-        v = type(v)(v2)
-      except:
+      if v2 > uint64(high(type(v))):
         error("Number type to small to contain the number.", i)
+      v = type(v)(v2)
 
 proc parseHook*(s: string, i: var int, v: var SomeFloat) =
   ## Will parse float32 and float64.
