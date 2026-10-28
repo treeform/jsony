@@ -26,6 +26,7 @@ proc parseHook*[T: not object](s: string, i: var int, v: var ref T)
 proc parseHook*(s: string, i: var int, v: var JsonNode)
 proc parseHook*(s: string, i: var int, v: var char)
 proc parseHook*[T: distinct](s: string, i: var int, v: var T)
+proc parseHook*[T](s: string, i: var int, v: var Option[T])
 
 template error(msg: string, i: int) =
   ## Shortcut to raise an exception.
